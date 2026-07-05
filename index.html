@@ -51,14 +51,14 @@ html,body{
   <h1 class="ar-title">News</h1>
 
   <div class="ar-grid">
-    <button class="ar-card" data-cat="world" onpointerdown="openPanel('world')">World</button>
-    <button class="ar-card" data-cat="nation" onpointerdown="openPanel('nation')">Nation</button>
-    <button class="ar-card" data-cat="business" onpointerdown="openPanel('business')">Business</button>
-    <button class="ar-card" data-cat="technology" onpointerdown="openPanel('technology')">Technology</button>
-    <button class="ar-card" data-cat="science" onpointerdown="openPanel('science')">Science</button>
-    <button class="ar-card" data-cat="health" onpointerdown="openPanel('health')">Health</button>
-    <button class="ar-card" data-cat="sports" onpointerdown="openPanel('sports')">Sports</button>
-    <button class="ar-card" data-cat="entertainment" onpointerdown="openPanel('entertainment')">Entertainment</button>
+    <button class="ar-card" onclick="openPanel('world')">World</button>
+    <button class="ar-card" onclick="openPanel('nation')">Nation</button>
+    <button class="ar-card" onclick="openPanel('business')">Business</button>
+    <button class="ar-card" onclick="openPanel('technology')">Technology</button>
+    <button class="ar-card" onclick="openPanel('science')">Science</button>
+    <button class="ar-card" onclick="openPanel('health')">Health</button>
+    <button class="ar-card" onclick="openPanel('sports')">Sports</button>
+    <button class="ar-card" onclick="openPanel('entertainment')">Entertainment</button>
   </div>
 </div>
 <style>
@@ -121,7 +121,7 @@ html,body{
 <div class="ar-panel" id="newsPanel">
   <div class="ar-panel-header">
     <span id="panelTitle"></span>
-    <button id="panelClose" onpointerdown="closePanel()">✕</button>
+    <button id="panelClose" onclick="closePanel()">✕</button>
   </div>
 
   <div class="ar-scroll" id="scrollArea">
@@ -151,7 +151,7 @@ function openPanel(category){
           <h3>${a.title}</h3>
           <p>${a.description||''}</p>
         `;
-        div.onpointerdown=()=>openArticle(a);
+        div.onclick=()=>openArticle(a);
         scrollInner.appendChild(div);
       });
     });
