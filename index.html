@@ -547,24 +547,35 @@ function openArticleReader(url, article){
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const status = document.getElementById('readerStatus');
 
   fetch(`${CURRENTS_BASE}/article?url=${encodeURIComponent(url)}`, { cache: "no-store", signal: controller.signal })
-    .then(r => r.text())
-    .then(html => {
+    .then(r => {
+      if (status) status.textContent = `Loading article… (HTTP ${r.status})`;
+      return r.text().then(html => ({ ok: r.ok, httpStatus: r.status, html }));
+    })
+    .then(({ ok, httpStatus, html }) => {
       clearTimeout(timeoutId);
       const frame = document.getElementById('readerFrame');
-      const status = document.getElementById('readerStatus');
-      frame.srcdoc = html && html.trim() ? html : "<body style='background:#000;color:#fff;font-family:sans-serif;padding:20px;'>This article returned no content.</body>";
+
+      if (!html || !html.trim()){
+        if (status) status.textContent = `Empty response from Worker (HTTP ${httpStatus}). Nothing to show.`;
+        return;
+      }
+
+      const preview = html.replace(/\s+/g, ' ').slice(0, 160);
+      console.log(`Reader debug — HTTP ${httpStatus}, length ${html.length}, preview: ${preview}`);
+
+      frame.srcdoc = html;
       frame.style.display = 'block';
       if (status) status.remove();
     })
     .catch(err => {
       clearTimeout(timeoutId);
-      const status = document.getElementById('readerStatus');
       if (status){
         status.textContent = (err && err.name === 'AbortError')
           ? "This article took too long to load. Try Back and a different one."
-          : "Couldn't load this article. Try Back and a different one.";
+          : `Couldn't load this article: ${err.message || err}`;
       }
     });
 
