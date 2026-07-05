@@ -1,37 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport"
-      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta charset="UTF-8">
 <title>AR News Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-:root {
-  color-scheme: dark;
-}
-
-/* Ray-Ban transparent root */
-html,body{
-  width:100%;height:100%;
-  background-color: rgba(0,0,0,0.01); /* AR transparency fix */
+body{
+  margin:0;
+  padding:0;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:transparent;
   color:#fff;
-  font-family:-apple-system,system-ui,sans-serif;
   overflow:hidden;
 }
 
-/* Home container */
+/* Root container for tabs/home */
 .ar-news-home{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;
+  position:relative;
   padding:20px;
-  background:transparent !important;
+  z-index:1; /* tabs stay BELOW the panel */
 }
 
 .ar-title{
   font-size:24px;
   margin-bottom:16px;
 }
+
+/* Generic button style */
+.open-btn{
+  background:#444;
+  border:none;
+  padding:10px 16px;
+  border-radius:8px;
+  color:#fff;
+  cursor:pointer;
+  margin-top:10px;
+}
+
 /* Trending Bar */
 .trending-bar{
   background:#111;
@@ -143,14 +149,18 @@ html,body{
   </div>
 </div>
 <style>
+/* PANEL — now fully interactive and ABOVE tabs */
 .ar-panel{
-  position:fixed;inset:0;
-  background:transparent !important;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.55); /* overlay so tabs disappear */
+  backdrop-filter:blur(6px);
   padding:20px;
   display:none;
   flex-direction:column;
   overflow:hidden;
-  z-index:500;
+  z-index:9999; /* critical fix */
+  pointer-events:auto !important;
 }
 
 .ar-panel.open{display:flex;}
@@ -161,6 +171,7 @@ html,body{
   align-items:center;
   margin-bottom:20px;
   background:transparent !important;
+  pointer-events:auto !important;
 }
 
 #panelClose{
@@ -172,11 +183,14 @@ html,body{
   cursor:pointer;
 }
 
+/* SCROLL AREA — patched for full interactivity */
 .ar-scroll{
   flex:1;
   overflow:hidden;
   position:relative;
   background:transparent !important;
+  pointer-events:auto !important;
+  z-index:10000;
 }
 
 .ar-scroll-inner{
@@ -184,14 +198,22 @@ html,body{
   left:0;right:0;top:0;
   padding-bottom:40px;
   background:transparent !important;
+  pointer-events:auto !important;
+  touch-action:none;
+  user-select:none;
+  min-height:100%; /* critical fix */
+  z-index:10001;
 }
 
+/* ARTICLE — now clickable */
 .ar-article{
   padding:14px 0;
   border-bottom:1px solid rgba(255,255,255,.15);
   background:transparent !important;
   transform-style:preserve-3d;
   transition:transform .25s ease, box-shadow .25s ease;
+  pointer-events:auto !important;
+  z-index:10002;
 }
 
 .ar-article:hover{
@@ -331,6 +353,7 @@ function openPanel(category){
     .then(data => {
       currentList = data.results || [];
       currentIndex = 0;
+      scrollInner.style.top = "0px";
       renderArticleList();
     });
 }
@@ -526,6 +549,7 @@ function openTrending(){
   panel.classList.add('open');
   panelTitle.textContent = "TRENDING";
   scrollInner.innerHTML = "";
+  scrollInner.style.top = "0px";
 
   trendingList.forEach(a => {
     const div = document.createElement('div');
@@ -581,6 +605,7 @@ function openBreaking(){
   panel.classList.add('open');
   panelTitle.textContent = "BREAKING NEWS";
   scrollInner.innerHTML = "";
+  scrollInner.style.top = "0px";
 
   window.breakingList.forEach(a => {
     const div = document.createElement('div');
@@ -606,6 +631,7 @@ function refreshCategory(category){
     .then(r => r.json())
     .then(data => {
       currentList = data.results || [];
+      scrollInner.style.top = "0px";
       renderArticleList();
     });
 }
@@ -630,7 +656,6 @@ panel.addEventListener("transitionend", () => {
 });
 </script>
 <script>
-/* Wrapper so Trending/Breaking can open articles */
 function openArticle(article){
   scrollInner.style.transition = "transform .35s ease";
   scrollInner.style.transform = "perspective(900px) translateZ(40px)";
