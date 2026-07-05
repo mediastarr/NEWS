@@ -1,18 +1,20 @@
-<div class="ar-news-home" id="newsHome">
-  <h1 class="ar-title">News</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>AR News Hub</title>
 
-  <div class="ar-grid">
-    <button class="ar-card" data-cat="world">World</button>
-    <button class="ar-card" data-cat="nation">Nation</button>
-    <button class="ar-card" data-cat="business">Business</button>
-    <button class="ar-card" data-cat="technology">Technology</button>
-    <button class="ar-card" data-cat="science">Science</button>
-    <button class="ar-card" data-cat="health">Health</button>
-    <button class="ar-card" data-cat="sports">Sports</button>
-    <button class="ar-card" data-cat="entertainment">Entertainment</button>
-  </div>
-</div>
 <style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  width:100%;height:100%;
+  background:#000;color:#fff;
+  font-family:-apple-system,system-ui,sans-serif;
+  overflow:hidden;
+}
+
 .ar-news-home{
   position:fixed;inset:0;
   display:flex;flex-direction:column;
@@ -49,13 +51,23 @@
   transform:translateY(-4px);
 }
 </style>
-<div class="ar-panel" id="newsPanel">
-  <div class="ar-panel-header">
-    <span id="panelTitle"></span>
-    <button id="panelClose">✕</button>
-  </div>
+</head>
 
-  <div class="ar-panel-content" id="panelContent"></div>
+<body>
+
+<div class="ar-news-home" id="newsHome">
+  <h1 class="ar-title">News</h1>
+
+  <div class="ar-grid">
+    <button class="ar-card" data-cat="world">World</button>
+    <button class="ar-card" data-cat="nation">Nation</button>
+    <button class="ar-card" data-cat="business">Business</button>
+    <button class="ar-card" data-cat="technology">Technology</button>
+    <button class="ar-card" data-cat="science">Science</button>
+    <button class="ar-card" data-cat="health">Health</button>
+    <button class="ar-card" data-cat="sports">Sports</button>
+    <button class="ar-card" data-cat="entertainment">Entertainment</button>
+  </div>
 </div>
 <style>
 .ar-panel{
@@ -65,7 +77,7 @@
   padding:20px;
   display:none;
   flex-direction:column;
-  overflow-y:auto;
+  overflow:hidden;
   z-index:500;
 }
 
@@ -87,6 +99,18 @@
   cursor:pointer;
 }
 
+.ar-scroll{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+
+.ar-scroll-inner{
+  position:absolute;
+  left:0;right:0;top:0;
+  padding-bottom:40px;
+}
+
 .ar-article{
   padding:14px 0;
   border-bottom:1px solid #444;
@@ -102,11 +126,23 @@
   color:#ccc;
 }
 </style>
+
+<div class="ar-panel" id="newsPanel">
+  <div class="ar-panel-header">
+    <span id="panelTitle"></span>
+    <button id="panelClose">✕</button>
+  </div>
+
+  <div class="ar-scroll" id="scrollArea">
+    <div class="ar-scroll-inner" id="scrollInner"></div>
+  </div>
+</div>
 <script>
 const cards=document.querySelectorAll('.ar-card');
 const panel=document.getElementById('newsPanel');
 const panelTitle=document.getElementById('panelTitle');
-const panelContent=document.getElementById('panelContent');
+const scrollArea=document.getElementById('scrollArea');
+const scrollInner=document.getElementById('scrollInner');
 const panelClose=document.getElementById('panelClose');
 
 function freezeBackground(){
@@ -117,7 +153,6 @@ function freezeBackground(){
 function unfreezeBackground(){
   document.getElementById('newsHome').style.pointerEvents='auto';
 }
-
 cards.forEach(card=>{
   card.addEventListener('pointerdown',()=>{
     const cat=card.dataset.cat;
@@ -130,10 +165,11 @@ panelClose.addEventListener('pointerdown',()=>{
   panel.classList.remove('open');
   unfreezeBackground();
 });
+
 async function openPanel(category){
   panel.classList.add('open');
   freezeBackground();
-  panelContent.innerHTML='<p>Loading...</p>';
+  scrollInner.innerHTML='<p>Loading...</p>';
 
   try{
     const res=await fetch(
@@ -141,10 +177,10 @@ async function openPanel(category){
     );
     const data=await res.json();
 
-    panelContent.innerHTML='';
+    scrollInner.innerHTML='';
 
     if(!data.articles || data.articles.length===0){
-      panelContent.innerHTML='<p>No articles found.</p>';
+      scrollInner.innerHTML='<p>No articles found.</p>';
       return;
     }
 
@@ -158,19 +194,93 @@ async function openPanel(category){
       div.addEventListener('pointerdown',()=>{
         openArticle(a);
       });
-      panelContent.appendChild(div);
+      scrollInner.appendChild(div);
     });
 
   }catch(e){
-    panelContent.innerHTML='<p>Error loading articles.</p>';
+    scrollInner.innerHTML='<p>Error loading articles.</p>';
   }
 }
 
 function openArticle(article){
-  panelContent.innerHTML=`
+  scrollInner.innerHTML=`
     <h2>${article.title}</h2>
     <p>${article.content||article.description||''}</p>
   `;
+}
+let isScrolling=false;
+let lastY=0;
+let velocity=0;
+let momentumFrame=null;
+
+scrollArea.addEventListener('pointerdown',e=>{
+  isScrolling=true;
+  lastY=e.clientY;
+  velocity=0;
+  cancelMomentum();
+});
+
+scrollArea.addEventListener('pointermove',e=>{
+  if(!isScrolling) return;
+
+  const dy=e.clientY-lastY;
+  lastY=e.clientY;
+
+  scrollInner.style.top=(scrollInner.offsetTop+dy)+'px';
+
+  velocity=dy; // track swipe speed
+});
+
+scrollArea.addEventListener('pointerup',()=>{
+  isScrolling=false;
+  startMomentum();
+});
+
+function startMomentum(){
+  const friction=0.92;
+
+  function momentum(){
+    velocity*=friction;
+
+    scrollInner.style.top=(scrollInner.offsetTop+velocity)+'px';
+
+    if(Math.abs(velocity)>0.5){
+      momentumFrame=requestAnimationFrame(momentum);
+    }
+  }
+
+  momentum();
+}
+
+function cancelMomentum(){
+  if(momentumFrame){
+    cancelAnimationFrame(momentumFrame);
+    momentumFrame=null;
+  }
+}
+function clampScroll(){
+  const maxScroll=0;
+  const minScroll=scrollArea.clientHeight-scrollInner.scrollHeight;
+
+  let top=scrollInner.offsetTop;
+
+  if(top>maxScroll) top=maxScroll;
+  if(top<minScroll) top=minScroll;
+
+  scrollInner.style.top=top+'px';
+}
+
+scrollArea.addEventListener('pointermove',clampScroll);
+scrollArea.addEventListener('pointerup',clampScroll);
+
+function momentum(){
+  velocity*=0.92;
+  scrollInner.style.top=(scrollInner.offsetTop+velocity)+'px';
+  clampScroll();
+
+  if(Math.abs(velocity)>0.5){
+    momentumFrame=requestAnimationFrame(momentum);
+  }
 }
 let startY=0;
 
