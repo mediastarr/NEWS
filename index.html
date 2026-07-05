@@ -2,14 +2,14 @@
   <h1 class="ar-title">News</h1>
 
   <div class="ar-grid">
-    <div class="ar-card" data-cat="us">U.S.</div>
     <div class="ar-card" data-cat="world">World</div>
-    <div class="ar-card" data-cat="politics">Politics</div>
+    <div class="ar-card" data-cat="nation">Nation</div>
     <div class="ar-card" data-cat="business">Business</div>
-    <div class="ar-card" data-cat="tech">Tech</div>
+    <div class="ar-card" data-cat="technology">Technology</div>
     <div class="ar-card" data-cat="science">Science</div>
     <div class="ar-card" data-cat="health">Health</div>
     <div class="ar-card" data-cat="sports">Sports</div>
+    <div class="ar-card" data-cat="entertainment">Entertainment</div>
   </div>
 </div>
 <style>
@@ -65,6 +65,7 @@
   display:none;
   flex-direction:column;
   overflow-y:auto;
+  z-index:500;
 }
 
 .ar-panel.open{display:flex;}
@@ -134,10 +135,15 @@ async function openPanel(category){
   panelContent.innerHTML='<p>Loading...</p>';
 
   try{
-    const res=await fetch(`https://newsapi.org/v2/top-headlines?category=${category}&country=us&apiKey=YOUR_KEY`);
+    const res=await fetch(`https://gnews.io/api/v4/top-headlines?category=${category}&lang=en&country=us&apikey=demo`);
     const data=await res.json();
 
     panelContent.innerHTML='';
+
+    if(!data.articles || data.articles.length===0){
+      panelContent.innerHTML='<p>No articles found.</p>';
+      return;
+    }
 
     data.articles.forEach(a=>{
       const div=document.createElement('div');
