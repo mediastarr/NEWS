@@ -52,13 +52,13 @@ html,body{
 
   <div class="ar-grid">
     <button class="ar-card" onclick="openPanel('world')">World</button>
-    <button class="ar-card" onclick="openPanel('nation')">Nation</button>
     <button class="ar-card" onclick="openPanel('business')">Business</button>
-    <button class="ar-card" onclick="openPanel('technology')">Technology</button>
     <button class="ar-card" onclick="openPanel('science')">Science</button>
-    <button class="ar-card" onclick="openPanel('health')">Health</button>
-    <button class="ar-card" onclick="openPanel('sports')">Sports</button>
+    <button class="ar-card" onclick="openPanel('technology')">Technology</button>
     <button class="ar-card" onclick="openPanel('entertainment')">Entertainment</button>
+    <button class="ar-card" onclick="openPanel('sports')">Sports</button>
+    <button class="ar-card" onclick="openPanel('health')">Health</button>
+    <button class="ar-card" onclick="openPanel('politics')">Politics</button>
   </div>
 </div>
 <style>
@@ -129,31 +129,43 @@ html,body{
   </div>
 </div>
 <script>
-const panel=document.getElementById('newsPanel');
-const panelTitle=document.getElementById('panelTitle');
-const scrollArea=document.getElementById('scrollArea');
-const scrollInner=document.getElementById('scrollInner');
+const panel = document.getElementById('newsPanel');
+const panelTitle = document.getElementById('panelTitle');
+const scrollArea = document.getElementById('scrollArea');
+const scrollInner = document.getElementById('scrollInner');
+
+// your NewsData.io API key
+const NEWS_API_KEY = 'pub_17925833bb71458d99ad2408f2042a93';
+</script>
+<script>
 function openPanel(category){
   panel.classList.add('open');
-  panelTitle.textContent=category.toUpperCase();
-  scrollInner.innerHTML='<p>Loading...</p>';
+  panelTitle.textContent = category.toUpperCase();
+  scrollInner.innerHTML = '<p>Loading...</p>';
 
-  fetch(`https://gnews.io/api/v4/top-headlines?category=${category}&lang=en&country=us&apikey=demo`)
-    .then(r=>r.json())
-    .then(data=>{
-      scrollInner.innerHTML='';
-      if(!data.articles){scrollInner.innerHTML='<p>No articles.</p>';return;}
+  fetch(`https://newsdata.io/api/1/news?apikey=${NEWS_API_KEY}&category=${category}`)
+    .then(r => r.json())
+    .then(data => {
+      scrollInner.innerHTML = '';
 
-      data.articles.forEach(a=>{
-        const div=document.createElement('div');
-        div.className='ar-article';
-        div.innerHTML=`
+      if (!data.results || data.results.length === 0) {
+        scrollInner.innerHTML = '<p>No articles found.</p>';
+        return;
+      }
+
+      data.results.forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'ar-article';
+        div.innerHTML = `
           <h3>${a.title}</h3>
-          <p>${a.description||''}</p>
+          <p>${a.description || ''}</p>
         `;
-        div.onclick=()=>openArticle(a);
+        div.onclick = () => openArticle(a);
         scrollInner.appendChild(div);
       });
+    })
+    .catch(() => {
+      scrollInner.innerHTML = '<p>Error loading articles.</p>';
     });
 }
 
@@ -162,46 +174,48 @@ function closePanel(){
 }
 
 function openArticle(article){
-  scrollInner.innerHTML=`
+  scrollInner.innerHTML = `
     <h2>${article.title}</h2>
-    <p>${article.content||article.description||''}</p>
+    <p>${article.content || article.description || ''}</p>
   `;
 }
-let isScrolling=false;
-let lastY=0;
-let velocity=0;
-let momentumFrame=null;
+</script>
+<script>
+let isScrolling = false;
+let lastY = 0;
+let velocity = 0;
+let momentumFrame = null;
 
-scrollArea.onpointerdown=e=>{
-  isScrolling=true;
-  lastY=e.clientY;
-  velocity=0;
+scrollArea.onpointerdown = e => {
+  isScrolling = true;
+  lastY = e.clientY;
+  velocity = 0;
   cancelMomentum();
 };
 
-scrollArea.onpointermove=e=>{
-  if(!isScrolling) return;
-  const dy=e.clientY-lastY;
-  lastY=e.clientY;
-  scrollInner.style.top=(scrollInner.offsetTop+dy)+'px';
-  velocity=dy;
+scrollArea.onpointermove = e => {
+  if (!isScrolling) return;
+  const dy = e.clientY - lastY;
+  lastY = e.clientY;
+  scrollInner.style.top = (scrollInner.offsetTop + dy) + 'px';
+  velocity = dy;
 };
 
-scrollArea.onpointerup=e=>{
-  isScrolling=false;
+scrollArea.onpointerup = e => {
+  isScrolling = false;
   startMomentum();
 };
 
 function startMomentum(){
-  const friction=0.92;
+  const friction = 0.92;
 
   function momentum(){
-    velocity*=friction;
-    scrollInner.style.top=(scrollInner.offsetTop+velocity)+'px';
+    velocity *= friction;
+    scrollInner.style.top = (scrollInner.offsetTop + velocity) + 'px';
     clampScroll();
 
-    if(Math.abs(velocity)>0.5){
-      momentumFrame=requestAnimationFrame(momentum);
+    if (Math.abs(velocity) > 0.5){
+      momentumFrame = requestAnimationFrame(momentum);
     }
   }
 
@@ -209,36 +223,40 @@ function startMomentum(){
 }
 
 function cancelMomentum(){
-  if(momentumFrame){
+  if (momentumFrame){
     cancelAnimationFrame(momentumFrame);
-    momentumFrame=null;
+    momentumFrame = null;
   }
 }
+</script>
+<script>
 function clampScroll(){
-  const maxScroll=0;
-  const minScroll=scrollArea.clientHeight-scrollInner.scrollHeight;
+  const maxScroll = 0;
+  const minScroll = scrollArea.clientHeight - scrollInner.scrollHeight;
 
-  let top=scrollInner.offsetTop;
+  let top = scrollInner.offsetTop;
 
-  if(top>maxScroll) top=maxScroll;
-  if(top<minScroll) top=minScroll;
+  if (top > maxScroll) top = maxScroll;
+  if (top < minScroll) top = minScroll;
 
-  scrollInner.style.top=top+'px';
+  scrollInner.style.top = top + 'px';
 }
 
-scrollArea.onpointermove=()=>{
-  if(isScrolling) clampScroll();
+scrollArea.onpointermove = e => {
+  if (isScrolling) clampScroll();
 };
-scrollArea.onpointerup=clampScroll;
-let startY=0;
+scrollArea.onpointerup = clampScroll;
+</script>
+<script>
+let startY = 0;
 
-panel.onpointerdown=e=>{
-  startY=e.clientY;
+panel.onpointerdown = e => {
+  startY = e.clientY;
 };
 
-panel.onpointerup=e=>{
-  const dy=e.clientY-startY;
-  if(dy>80){
+panel.onpointerup = e => {
+  const dy = e.clientY - startY;
+  if (dy > 80){
     closePanel();
   }
 };
