@@ -7,15 +7,20 @@
 <title>AR News Hub</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+:root {
+  color-scheme: dark;
+}
+
+/* Ray-Ban transparent root */
 html,body{
   width:100%;height:100%;
-  background:transparent;
+  background-color: rgba(0,0,0,0.01); /* AR transparency fix */
   color:#fff;
   font-family:-apple-system,system-ui,sans-serif;
   overflow:hidden;
 }
 
+/* Home container */
 .ar-news-home{
   position:fixed;inset:0;
   display:flex;flex-direction:column;
@@ -27,7 +32,6 @@ html,body{
   font-size:24px;
   margin-bottom:16px;
 }
-
 /* Trending Bar */
 .trending-bar{
   background:#111;
@@ -278,19 +282,24 @@ html,body{
   </div>
 </div>
 <script>
+/* Panel + DOM references */
 const panel = document.getElementById('newsPanel');
 const panelTitle = document.getElementById('panelTitle');
 const scrollArea = document.getElementById('scrollArea');
 const scrollInner = document.getElementById('scrollInner');
 
+/* Your NewsData.io API key */
 const NEWS_API_KEY = "pub_17925833bb71458d99ad2408f2042a93";
 
+/* Active category + timers */
 let activeCategory = null;
 let categoryTimer = null;
 
+/* Trending system */
 let trendingIndex = 0;
 let trendingList = [];
 
+/* Article navigation */
 let currentIndex = 0;
 let currentList = [];
 </script>
@@ -298,9 +307,11 @@ let currentList = [];
 function openPanel(category){
   activeCategory = category;
 
+  /* Apply category glow theme */
   document.body.className = "";
   document.body.classList.add("theme-" + category);
 
+  /* Reset auto-refresh timer */
   if (categoryTimer){
     clearInterval(categoryTimer);
   }
@@ -309,10 +320,12 @@ function openPanel(category){
     refreshCategory(category);
   }, 20000);
 
+  /* Open panel */
   panel.classList.add('open');
   panelTitle.textContent = category.toUpperCase();
   scrollInner.innerHTML = '<p>Loading...</p>';
 
+  /* Fetch category articles */
   fetch(`https://newsdata.io/api/1/news?apikey=${NEWS_API_KEY}&category=${category}`)
     .then(r => r.json())
     .then(data => {
@@ -361,14 +374,21 @@ function openArticleIndex(i){
 }
 
 function openArticle(article){
+  /* 3D pop animation */
   scrollInner.style.transition = "transform .35s ease";
   scrollInner.style.transform = "perspective(900px) translateZ(40px)";
   setTimeout(() => {
     scrollInner.style.transform = "perspective(900px) translateZ(0px)";
   }, 200);
 
+  /* Render article */
   scrollInner.innerHTML = `
-    ${article.image_url ? `<img src="${article.image_url}" style="width:100%;border-radius:10px;margin-bottom:20px;">` : ''}
+    ${article.image_url ? 
+      `<img src="${article.image_url}" 
+            style="width:100%;border-radius:10px;margin-bottom:20px;">`
+      : ''
+    }
+
     <h2>${article.title}</h2>
     <p>${article.content || article.description || ''}</p>
 
@@ -378,7 +398,7 @@ function openArticle(article){
   `;
 }
 
-/* Swipe left/right */
+/* Swipe left/right navigation */
 let startX = 0;
 let endX = 0;
 
@@ -390,6 +410,7 @@ scrollArea.onpointerup = e => {
   endX = e.clientX;
   const dx = endX - startX;
 
+  /* Swipe right → previous article */
   if (dx > 80){
     if (currentIndex > 0){
       currentIndex--;
@@ -397,6 +418,7 @@ scrollArea.onpointerup = e => {
     }
   }
 
+  /* Swipe left → next article */
   if (dx < -80){
     if (currentIndex < currentList.length - 1){
       currentIndex++;
@@ -411,6 +433,7 @@ let lastY = 0;
 let velocity = 0;
 let momentumFrame = null;
 
+/* Pointer down: begin drag */
 scrollArea.onpointerdown = e => {
   isScrolling = true;
   lastY = e.clientY;
@@ -418,6 +441,7 @@ scrollArea.onpointerdown = e => {
   cancelMomentum();
 };
 
+/* Pointer move: drag scroll */
 scrollArea.onpointermove = e => {
   if (!isScrolling) return;
   const dy = e.clientY - lastY;
@@ -426,11 +450,13 @@ scrollArea.onpointermove = e => {
   velocity = dy;
 };
 
+/* Pointer up: release and start momentum */
 scrollArea.onpointerup = e => {
   isScrolling = false;
   startMomentum();
 };
 
+/* Momentum physics */
 function startMomentum(){
   const friction = 0.92;
 
@@ -447,6 +473,7 @@ function startMomentum(){
   momentum();
 }
 
+/* Cancel momentum */
 function cancelMomentum(){
   if (momentumFrame){
     cancelAnimationFrame(momentumFrame);
@@ -454,6 +481,7 @@ function cancelMomentum(){
   }
 }
 
+/* Prevent scrolling past top/bottom */
 function clampScroll(){
   const maxScroll = 0;
   const minScroll = scrollArea.clientHeight - scrollInner.scrollHeight;
@@ -467,6 +495,7 @@ function clampScroll(){
 }
 </script>
 <script>
+/* Fetch trending headlines */
 function fetchTrending(){
   fetch(`https://newsdata.io/api/1/news?apikey=${NEWS_API_KEY}&category=top`)
     .then(r => r.json())
@@ -478,6 +507,7 @@ function fetchTrending(){
     });
 }
 
+/* Animate trending bar updates */
 function updateTrendingBar(){
   const bar = document.getElementById("trendingBar");
   bar.classList.add("update");
@@ -491,6 +521,7 @@ function updateTrendingBar(){
   }, 300);
 }
 
+/* Open trending panel */
 function openTrending(){
   panel.classList.add('open');
   panelTitle.textContent = "TRENDING";
@@ -510,6 +541,7 @@ function openTrending(){
   });
 }
 
+/* Fetch breaking news */
 function fetchBreaking(){
   fetch(`https://newsdata.io/api/1/news?apikey=${NEWS_API_KEY}&category=top`)
     .then(r => r.json())
@@ -544,6 +576,7 @@ function fetchBreaking(){
     });
 }
 
+/* Open breaking news panel */
 function openBreaking(){
   panel.classList.add('open');
   panelTitle.textContent = "BREAKING NEWS";
@@ -564,17 +597,62 @@ function openBreaking(){
 }
 </script>
 <script>
+/* Refresh category every 20 seconds */
+function refreshCategory(category){
+  if (!panel.classList.contains("open")) return;
+  if (activeCategory !== category) return;
+
+  fetch(`https://newsdata.io/api/1/news?apikey=${NEWS_API_KEY}&category=${category}`)
+    .then(r => r.json())
+    .then(data => {
+      currentList = data.results || [];
+      renderArticleList();
+    });
+}
+
+/* Close panel */
 function closePanel(){
   panel.classList.remove('open');
 }
-
-/* Auto-refresh systems */
+</script>
+<script>
+/* Start trending auto-refresh */
 fetchTrending();
 setInterval(fetchTrending, 30000);
 
+/* Start breaking news auto-refresh */
 fetchBreaking();
 setInterval(fetchBreaking, 15000);
-</script>
 
+/* Ensure scroll starts at top when panel opens */
+panel.addEventListener("transitionend", () => {
+  scrollInner.style.top = "0px";
+});
+</script>
+<script>
+/* Wrapper so Trending/Breaking can open articles */
+function openArticle(article){
+  scrollInner.style.transition = "transform .35s ease";
+  scrollInner.style.transform = "perspective(900px) translateZ(40px)";
+  setTimeout(() => {
+    scrollInner.style.transform = "perspective(900px) translateZ(0px)";
+  }, 200);
+
+  scrollInner.innerHTML = `
+    ${article.image_url ? 
+      `<img src="${article.image_url}" 
+            style="width:100%;border-radius:10px;margin-bottom:20px;">`
+      : ''
+    }
+
+    <h2>${article.title}</h2>
+    <p>${article.content || article.description || ''}</p>
+
+    <button class="open-btn" onclick="window.open('${article.link}', '_blank')">
+      Read More
+    </button>
+  `;
+}
+</script>
 </body>
 </html>
