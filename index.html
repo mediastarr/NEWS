@@ -29,11 +29,13 @@ body{
 
 /* Generic button style */
 .open-btn{
+  display:inline-block;
   background:#444;
   border:none;
   padding:10px 16px;
   border-radius:8px;
   color:#fff;
+  text-decoration:none;
   cursor:pointer;
   margin-top:10px;
 }
@@ -437,14 +439,10 @@ function openArticleFull(article){
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
-    <button class="open-btn" id="readMoreBtn" tabindex="0">
+    <a class="open-btn" id="readMoreBtn" tabindex="0" href="${articleUrl}">
       Read More
-    </button>
+    </a>
   `;
-
-  document.getElementById('readMoreBtn').onclick = () => {
-    window.location.href = articleUrl;
-  };
 
   focusFirst();
 }
@@ -662,7 +660,7 @@ function closePanel(){
    pressing Enter on a focused <button> activates it natively.
    Left/Right still step between articles when one is open. */
 function getFocusable(){
-  return Array.from(panel.querySelectorAll('button')).filter(el => el.offsetParent !== null);
+  return Array.from(panel.querySelectorAll('button, a.open-btn')).filter(el => el.offsetParent !== null);
 }
 
 function focusStep(direction){
