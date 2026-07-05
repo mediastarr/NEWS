@@ -439,10 +439,14 @@ function openArticleFull(article){
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
-    <a class="open-btn" id="readMoreBtn" tabindex="0" href="${articleUrl}">
+    <a class="open-btn" id="readMoreBtn" tabindex="0" href="${articleUrl}" target="_top" rel="noopener">
       Read More
     </a>
   `;
+
+  document.getElementById('readMoreBtn').addEventListener('click', () => {
+    panelTitle.textContent = "Opening…";
+  });
 
   focusFirst();
 }
