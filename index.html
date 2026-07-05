@@ -169,6 +169,8 @@ body{
 .ar-scroll-inner{
   position:absolute;
   left:0;right:0;top:0;
+  width:100%;
+  box-sizing:border-box;
   padding-bottom:40px;
   background:transparent !important;
   pointer-events:auto !important;
@@ -310,6 +312,10 @@ const scrollArea = document.getElementById('scrollArea');
 const scrollInner = document.getElementById('scrollInner');
 
 const CURRENTS_API_KEY = "TwVaFP-l5MuTOmKpE4OBVesLbEjPLu1PK66IJXfnvxBYzfGB";
+/* Currents API has no CORS headers of its own, so requests go through
+   a Cloudflare Worker proxy that adds Access-Control-Allow-Origin.
+   Deploy currents-proxy-worker.js as its own Worker and put its URL here. */
+const CURRENTS_BASE = "https://currents-proxy.mediastarr86.workers.dev";
 
 let activeCategory = null;
 let trendingIndex = 0;
@@ -336,11 +342,11 @@ function openPanel(category){
 
   let url;
   if (category === 'world'){
-    url = `https://api.currentsapi.services/v1/search?keywords=world&language=en&apiKey=${CURRENTS_API_KEY}`;
+    url = `${CURRENTS_BASE}/v1/search?keywords=world&language=en&apiKey=${CURRENTS_API_KEY}`;
   } else if (isCategory(category)){
-    url = `https://api.currentsapi.services/v1/latest-news?category=${category}&language=en&apiKey=${CURRENTS_API_KEY}`;
+    url = `${CURRENTS_BASE}/v1/latest-news?category=${category}&language=en&apiKey=${CURRENTS_API_KEY}`;
   } else {
-    url = `https://api.currentsapi.services/v1/latest-news?language=en&apiKey=${CURRENTS_API_KEY}`;
+    url = `${CURRENTS_BASE}/v1/latest-news?language=en&apiKey=${CURRENTS_API_KEY}`;
   }
 
   fetch(url)
@@ -406,11 +412,11 @@ function openArticleIndex(i){
 }
 
 function openArticleFull(article){
-  scrollInner.style.transition = "transform .35s ease";
-  scrollInner.style.transform = "perspective(900px) translateZ(40px)";
+  scrollInner.style.transition = "opacity .25s ease";
+  scrollInner.style.opacity = 0;
   setTimeout(() => {
-    scrollInner.style.transform = "perspective(900px) translateZ(0px)";
-  }, 200);
+    scrollInner.style.opacity = 1;
+  }, 60);
 
   const articleUrl = getArticleUrl(article);
 
@@ -424,10 +430,14 @@ function openArticleFull(article){
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
-    <button class="open-btn" onclick="window.open('${articleUrl}', '_blank')">
+    <button class="open-btn" id="readMoreBtn" tabindex="0">
       Read More
     </button>
   `;
+
+  document.getElementById('readMoreBtn').onclick = () => {
+    window.location.href = articleUrl;
+  };
 }
 
 /* Swipe navigation */
@@ -520,7 +530,7 @@ function clampScroll(){
 
 /* Trending using Currents search */
 function fetchTrending(){
-  fetch(`https://api.currentsapi.services/v1/search?keywords=news&language=en&apiKey=${CURRENTS_API_KEY}`)
+  fetch(`${CURRENTS_BASE}/v1/search?keywords=news&language=en&apiKey=${CURRENTS_API_KEY}`)
     .then(r => r.json())
     .then(data => {
       trendingList = data.news || [];
@@ -577,7 +587,7 @@ function openTrending(){
 
 /* Breaking using Currents search */
 function fetchBreaking(){
-  fetch(`https://api.currentsapi.services/v1/search?keywords=breaking&language=en&apiKey=${CURRENTS_API_KEY}`)
+  fetch(`${CURRENTS_BASE}/v1/search?keywords=breaking&language=en&apiKey=${CURRENTS_API_KEY}`)
     .then(r => r.json())
     .then(data => {
       breakingList = data.news || [];
@@ -633,6 +643,37 @@ function openBreaking(){
 function closePanel(){
   panel.classList.remove('open');
 }
+
+/* Neural Band input: keydown only (no pointer/touch events on glasses) */
+const SCROLL_STEP = 60;
+
+document.addEventListener('keydown', (e) => {
+  if (!panel.classList.contains('open')) return;
+
+  if (e.key === 'ArrowUp'){
+    e.preventDefault();
+    cancelMomentum();
+    scrollInner.style.top = (scrollInner.offsetTop + SCROLL_STEP) + 'px';
+    clampScroll();
+  } else if (e.key === 'ArrowDown'){
+    e.preventDefault();
+    cancelMomentum();
+    scrollInner.style.top = (scrollInner.offsetTop - SCROLL_STEP) + 'px';
+    clampScroll();
+  } else if (e.key === 'ArrowRight'){
+    if (currentList.length && currentIndex < currentList.length - 1){
+      currentIndex++;
+      openArticleFull(currentList[currentIndex]);
+    }
+  } else if (e.key === 'ArrowLeft'){
+    if (currentList.length && currentIndex > 0){
+      currentIndex--;
+      openArticleFull(currentList[currentIndex]);
+    }
+  } else if (e.key === 'Escape'){
+    closePanel();
+  }
+});
 
 /* Init: fetch trending + breaking once */
 fetchTrending();
