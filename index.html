@@ -324,12 +324,31 @@ const CURRENTS_API_KEY = "TwVaFP-l5MuTOmKpE4OBVesLbEjPLu1PK66IJXfnvxBYzfGB";
    Deploy currents-proxy-worker.js as its own Worker and put its URL here. */
 const CURRENTS_BASE = "https://currents-proxy.mediastarr86.workers.dev";
 
+/* Shared query filters: real news only (no discussion/articles),
+   drop non-news sources like CVE trackers, 30 per page. */
+const PAGE_SIZE = 30;
+const EXCLUDED_DOMAINS = "vuldb.com";
+const COMMON_FILTERS = `type=1&domain_not=${EXCLUDED_DOMAINS}&page_size=${PAGE_SIZE}`;
+
 let activeCategory = null;
 let trendingIndex = 0;
 let trendingList = [];
 let currentIndex = 0;
 let currentList = [];
 let breakingList = [];
+
+/* Pagination state per view, so "Load More" knows what to fetch next */
+let categoryUrlBase = '';
+let categoryPage = 1;
+let categoryLastCount = 0;
+
+let trendingUrlBase = '';
+let trendingPage = 1;
+let trendingLastCount = 0;
+
+let breakingUrlBase = '';
+let breakingPage = 1;
+let breakingLastCount = 0;
 
 /* Back-navigation state: X goes back one level (article -> list -> closed)
    instead of always closing straight to the home tabs. */
@@ -364,26 +383,45 @@ function openPanel(category){
   scrollInner.innerHTML = '<p>Loading...</p>';
   scrollInner.style.top = "0px";
 
-  let url;
   if (category === 'world'){
-    url = `${CURRENTS_BASE}/v1/search?keywords=world&language=en&apiKey=${CURRENTS_API_KEY}`;
+    categoryUrlBase = `${CURRENTS_BASE}/v1/search?keywords=world&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   } else if (isCategory(category)){
-    url = `${CURRENTS_BASE}/v1/latest-news?category=${category}&language=en&apiKey=${CURRENTS_API_KEY}`;
+    categoryUrlBase = `${CURRENTS_BASE}/v1/latest-news?category=${category}&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   } else {
-    url = `${CURRENTS_BASE}/v1/latest-news?language=en&apiKey=${CURRENTS_API_KEY}`;
+    categoryUrlBase = `${CURRENTS_BASE}/v1/latest-news?language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   }
 
-  fetch(url, { cache: "no-store" })
+  categoryPage = 1;
+  fetchCategoryPage(1, false);
+}
+
+function fetchCategoryPage(page, append){
+  fetch(`${categoryUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      currentList = data.news || [];
-      currentIndex = 0;
+      const news = data.news || [];
+      categoryLastCount = news.length;
+      categoryPage = page;
+
+      if (append){
+        currentList = currentList.concat(news);
+      } else {
+        currentList = news;
+        currentIndex = 0;
+      }
+
       listRenderer = renderArticleList;
       renderArticleList();
     })
     .catch(err => {
-      scrollInner.innerHTML = `<p>Error loading news: ${err}</p>`;
+      if (!append){
+        scrollInner.innerHTML = `<p>Error loading news: ${err}</p>`;
+      }
     });
+}
+
+function loadMoreCategory(){
+  fetchCategoryPage(categoryPage + 1, true);
 }
 
 function renderArticleList(){
@@ -423,6 +461,14 @@ function renderArticleList(){
 
     scrollInner.appendChild(div);
   });
+
+  if (categoryLastCount === PAGE_SIZE){
+    const loadMoreDiv = document.createElement('div');
+    loadMoreDiv.style.textAlign = 'center';
+    loadMoreDiv.style.padding = '10px 0 20px';
+    loadMoreDiv.innerHTML = `<button class="open-btn" onclick="loadMoreCategory()">Load More</button>`;
+    scrollInner.appendChild(loadMoreDiv);
+  }
 
   currentView = 'list';
   focusFirst();
@@ -472,23 +518,42 @@ function openArticleFull(article){
   focusFirst();
 }
 
-/* This platform blocks top-level navigation away from the app, so
-   "Read More" loads the article inside an iframe instead of leaving.
-   Note: many publishers set headers that refuse to render inside any
-   frame, so this will work for some sources and show blank for others
-   — that refusal comes from the source site, not this app. */
+/* This platform blocks both top-level navigation away from the app AND
+   iframing third-party sites directly, so "Read More" fetches the article's
+   HTML server-side through the Worker (same trick as the news API) and
+   injects it via srcdoc — that's DOM content arriving through our own
+   fetch(), not a live navigation/frame to another origin, so it isn't
+   subject to the same block. Some sites will still render awkwardly
+   (scripts are disabled in the sandboxed frame for safety), but the
+   readable text and images should come through. */
 function openArticleReader(url, article){
   scrollInner.innerHTML = `
     <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
+    <p id="readerStatus" style="margin-top:14px;">Loading article…</p>
     <iframe
-      src="${url}"
-      style="width:100%;height:65vh;border:none;border-radius:10px;margin-top:10px;background:#fff;"
+      id="readerFrame"
+      sandbox="allow-same-origin"
+      style="width:100%;height:65vh;border:none;border-radius:10px;margin-top:10px;background:#fff;display:none;"
     ></iframe>
   `;
 
   document.getElementById('readerBack').onclick = () => {
     openArticleFull(article);
   };
+
+  fetch(`${CURRENTS_BASE}/article?url=${encodeURIComponent(url)}`, { cache: "no-store" })
+    .then(r => r.text())
+    .then(html => {
+      const frame = document.getElementById('readerFrame');
+      const status = document.getElementById('readerStatus');
+      frame.srcdoc = html;
+      frame.style.display = 'block';
+      if (status) status.remove();
+    })
+    .catch(err => {
+      const status = document.getElementById('readerStatus');
+      if (status) status.textContent = "Couldn't load this article. Try Back and a different one.";
+    });
 
   currentView = 'reader';
   focusFirst();
@@ -584,19 +649,40 @@ function clampScroll(){
 
 /* Trending using Currents search */
 function fetchTrending(){
-  fetch(`${CURRENTS_BASE}/v1/search?keywords=news&language=en&apiKey=${CURRENTS_API_KEY}`, { cache: "no-store" })
+  trendingUrlBase = `${CURRENTS_BASE}/v1/search?keywords=news&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
+  trendingPage = 1;
+  fetchTrendingPage(1, false);
+}
+
+function fetchTrendingPage(page, append){
+  fetch(`${trendingUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      trendingList = data.news || [];
-      if(trendingList.length > 0){
-        updateTrendingBar();
+      const news = data.news || [];
+      trendingLastCount = news.length;
+      trendingPage = page;
+
+      if (append){
+        trendingList = trendingList.concat(news);
+        renderTrendingList();
       } else {
-        document.getElementById("trendingBar").textContent = "Trending: no data";
+        trendingList = news;
+        if (trendingList.length > 0){
+          updateTrendingBar();
+        } else {
+          document.getElementById("trendingBar").textContent = "Trending: no data";
+        }
       }
     })
     .catch(err => {
-      document.getElementById("trendingBar").textContent = "Trending: error";
+      if (!append){
+        document.getElementById("trendingBar").textContent = "Trending: error";
+      }
     });
+}
+
+function loadMoreTrending(){
+  fetchTrendingPage(trendingPage + 1, true);
 }
 
 function updateTrendingBar(){
@@ -643,6 +729,14 @@ function renderTrendingList(){
     scrollInner.appendChild(div);
   });
 
+  if (trendingLastCount === PAGE_SIZE){
+    const loadMoreDiv = document.createElement('div');
+    loadMoreDiv.style.textAlign = 'center';
+    loadMoreDiv.style.padding = '10px 0 20px';
+    loadMoreDiv.innerHTML = `<button class="open-btn" onclick="loadMoreTrending()">Load More</button>`;
+    scrollInner.appendChild(loadMoreDiv);
+  }
+
   currentView = 'list';
   focusFirst();
 }
@@ -655,10 +749,26 @@ function openTrendingIndex(i){
 
 /* Breaking using Currents search */
 function fetchBreaking(){
-  fetch(`${CURRENTS_BASE}/v1/search?keywords=breaking&language=en&apiKey=${CURRENTS_API_KEY}`, { cache: "no-store" })
+  breakingUrlBase = `${CURRENTS_BASE}/v1/search?keywords=breaking&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
+  breakingPage = 1;
+  fetchBreakingPage(1, false);
+}
+
+function fetchBreakingPage(page, append){
+  fetch(`${breakingUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      breakingList = data.news || [];
+      const news = data.news || [];
+      breakingLastCount = news.length;
+      breakingPage = page;
+
+      if (append){
+        breakingList = breakingList.concat(news);
+        renderBreakingList();
+        return;
+      }
+
+      breakingList = news;
       const bar = document.getElementById("breakingBar");
 
       if (breakingList.length > 0){
@@ -677,9 +787,15 @@ function fetchBreaking(){
       }
     })
     .catch(err => {
-      const bar = document.getElementById("breakingBar");
-      bar.style.display = "none";
+      if (!append){
+        const bar = document.getElementById("breakingBar");
+        bar.style.display = "none";
+      }
     });
+}
+
+function loadMoreBreaking(){
+  fetchBreakingPage(breakingPage + 1, true);
 }
 
 function openBreaking(){
@@ -710,6 +826,14 @@ function renderBreakingList(){
     `;
     scrollInner.appendChild(div);
   });
+
+  if (breakingLastCount === PAGE_SIZE){
+    const loadMoreDiv = document.createElement('div');
+    loadMoreDiv.style.textAlign = 'center';
+    loadMoreDiv.style.padding = '10px 0 20px';
+    loadMoreDiv.innerHTML = `<button class="open-btn" onclick="loadMoreBreaking()">Load More</button>`;
+    scrollInner.appendChild(loadMoreDiv);
+  }
 
   currentView = 'list';
   focusFirst();
