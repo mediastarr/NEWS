@@ -10,7 +10,7 @@ body{
   margin:0;
   padding:0;
   font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:#000 !important; /* fix white screen */
+  background:#000 !important;
   color:#fff;
   overflow:hidden;
 }
@@ -19,7 +19,7 @@ body{
 .ar-news-home{
   position:relative;
   padding:20px;
-  z-index:1 !important; /* tabs stay BELOW the panel */
+  z-index:1 !important;
 }
 
 .ar-title{
@@ -121,39 +121,12 @@ body{
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
   transform-style:preserve-3d;
 }
-</style>
-</head>
 
-<body>
-
-<div class="ar-news-home" id="newsHome">
-  <h1 class="ar-title">News</h1>
-
-  <div id="trendingBar" class="trending-bar" onclick="openTrending()">
-    Trending Now: Loading...
-  </div>
-
-  <div id="breakingBar" class="breaking-alert" style="display:none;" onclick="openBreaking()">
-    BREAKING NEWS: Loading...
-  </div>
-
-  <div class="ar-grid">
-    <button class="ar-card" onclick="openPanel('world')">🌍 World</button>
-    <button class="ar-card" onclick="openPanel('business')">💼 Business</button>
-    <button class="ar-card" onclick="openPanel('science')">🔬 Science</button>
-    <button class="ar-card" onclick="openPanel('technology')">🖥️ Technology</button>
-    <button class="ar-card" onclick="openPanel('entertainment')">🎬 Entertainment</button>
-    <button class="ar-card" onclick="openPanel('sports')">🏆 Sports</button>
-    <button class="ar-card" onclick="openPanel('health')">❤️ Health</button>
-    <button class="ar-card" onclick="openPanel('politics')">🏛️ Politics</button>
-  </div>
-</div>
-<style>
-/* PANEL — fully interactive and ABOVE tabs */
+/* PANEL */
 .ar-panel{
   position:fixed !important;
   inset:0 !important;
-  background:rgba(0,0,0,0.75) !important; /* overlay */
+  background:rgba(0,0,0,0.75) !important;
   backdrop-filter:blur(6px);
   padding:20px;
   display:none;
@@ -183,7 +156,7 @@ body{
   cursor:pointer;
 }
 
-/* SCROLL AREA — patched for full interactivity */
+/* SCROLL AREA */
 .ar-scroll{
   flex:1;
   overflow:hidden;
@@ -201,11 +174,11 @@ body{
   pointer-events:auto !important;
   touch-action:none !important;
   user-select:none;
-  min-height:100%; /* critical fix */
+  min-height:100%;
   z-index:10001;
 }
 
-/* ARTICLE — clickable */
+/* ARTICLE */
 .ar-article{
   padding:14px 0;
   border-bottom:1px solid rgba(255,255,255,.15);
@@ -235,7 +208,7 @@ body{
   100%{opacity:.6}
 }
 
-/* CATEGORY THEMES */
+/* THEMES */
 .theme-world .ar-panel-header,
 .theme-world .ar-article,
 .theme-world .ar-card {
@@ -292,6 +265,32 @@ body{
   box-shadow: 0 0 22px rgba(255,60,60,.35);
 }
 </style>
+</head>
+
+<body>
+
+<div class="ar-news-home" id="newsHome">
+  <h1 class="ar-title">News</h1>
+
+  <div id="trendingBar" class="trending-bar" onclick="openTrending()">
+    Trending Now: Loading...
+  </div>
+
+  <div id="breakingBar" class="breaking-alert" style="display:none;" onclick="openBreaking()">
+    BREAKING NEWS: Loading...
+  </div>
+
+  <div class="ar-grid">
+    <button class="ar-card" onclick="openPanel('world')">🌍 World</button>
+    <button class="ar-card" onclick="openPanel('business')">💼 Business</button>
+    <button class="ar-card" onclick="openPanel('science')">🔬 Science</button>
+    <button class="ar-card" onclick="openPanel('technology')">🖥️ Technology</button>
+    <button class="ar-card" onclick="openPanel('entertainment')">🎬 Entertainment</button>
+    <button class="ar-card" onclick="openPanel('sports')">🏆 Sports</button>
+    <button class="ar-card" onclick="openPanel('health')">❤️ Health</button>
+    <button class="ar-card" onclick="openPanel('politics')">🏛️ Politics</button>
+  </div>
+</div>
 
 <div class="ar-panel" id="newsPanel">
   <div class="ar-panel-header">
@@ -303,75 +302,52 @@ body{
     <div class="ar-scroll-inner" id="scrollInner"></div>
   </div>
 </div>
+
 <script>
-/* Panel + DOM references */
 const panel = document.getElementById('newsPanel');
 const panelTitle = document.getElementById('panelTitle');
 const scrollArea = document.getElementById('scrollArea');
 const scrollInner = document.getElementById('scrollInner');
 
-/* Your NewsAPI.org key */
-const NEWS_API_KEY = "e8ec6dee144b4555ac43d713b53f2359";
+const CURRENTS_API_KEY = "TwVaFP-l5MuTOmKpE4OBVesLbEjPLu1PK66IJXfnvxBYzfGB";
 
-/* Active category + timers */
 let activeCategory = null;
-let categoryTimer = null;
-
-/* Trending system */
 let trendingIndex = 0;
 let trendingList = [];
-
-/* Article navigation */
 let currentIndex = 0;
 let currentList = [];
-</script>
-<script>
-/* Map category to query string for worldwide search */
-function categoryToQuery(category){
-  switch(category){
-    case 'world': return 'world news';
-    case 'business': return 'business';
-    case 'science': return 'science';
-    case 'technology': return 'technology';
-    case 'entertainment': return 'entertainment';
-    case 'sports': return 'sports';
-    case 'health': return 'health';
-    case 'politics': return 'politics';
-    default: return 'news';
-  }
+let breakingList = [];
+
+/* Map UI category to Currents category or search */
+function isCategory(cat){
+  return ['business','science','technology','entertainment','sports','health','politics'].includes(cat);
 }
 
 function openPanel(category){
   activeCategory = category;
 
-  /* Apply category glow theme */
   document.body.className = "";
   document.body.classList.add("theme-" + category);
 
-  /* Reset auto-refresh timer */
-  if (categoryTimer){
-    clearInterval(categoryTimer);
-  }
-
-  categoryTimer = setInterval(() => {
-    refreshCategory(category);
-  }, 20000);
-
-  /* Open panel */
   panel.classList.add('open');
   panelTitle.textContent = category.toUpperCase();
   scrollInner.innerHTML = '<p>Loading...</p>';
   scrollInner.style.top = "0px";
 
-  const q = categoryToQuery(category);
+  let url;
+  if (category === 'world'){
+    url = `https://api.currentsapi.services/v1/search?keywords=world&language=en&apiKey=${CURRENTS_API_KEY}`;
+  } else if (isCategory(category)){
+    url = `https://api.currentsapi.services/v1/latest-news?category=${category}&language=en&apiKey=${CURRENTS_API_KEY}`;
+  } else {
+    url = `https://api.currentsapi.services/v1/latest-news?language=en&apiKey=${CURRENTS_API_KEY}`;
+  }
 
-  /* NewsAPI worldwide search */
-  fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&apiKey=${NEWS_API_KEY}`)
+  fetch(url)
     .then(r => r.json())
     .then(data => {
-      currentList = data.articles || [];
+      currentList = data.news || [];
       currentIndex = 0;
-      scrollInner.style.top = "0px";
       renderArticleList();
     })
     .catch(err => {
@@ -382,14 +358,19 @@ function openPanel(category){
 function renderArticleList(){
   scrollInner.innerHTML = "";
 
+  if (!currentList.length){
+    scrollInner.innerHTML = "<p>No articles found.</p>";
+    return;
+  }
+
   currentList.forEach((a, i) => {
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.setAttribute("data-index", i);
 
-    const imgHtml = a.urlToImage
+    const imgHtml = a.image
       ? `<img 
-           src="${a.urlToImage}" 
+           src="${a.image}" 
            loading="lazy"
            style="width:100%;border-radius:10px;opacity:0;transition:opacity .4s;"
            onload="this.style.opacity=1"
@@ -412,24 +393,19 @@ function renderArticleList(){
     scrollInner.appendChild(div);
   });
 }
-</script>
-<script>
+
+function getArticleUrl(article){
+  if (article.url) return article.url;
+  const title = article.title || '';
+  return 'https://news.google.com/search?q=' + encodeURIComponent(title);
+}
+
 function openArticleIndex(i){
   currentIndex = i;
   openArticleFull(currentList[i]);
 }
 
-function getArticleUrl(article){
-  /* Prefer direct URL from NewsAPI */
-  if (article.url) return article.url;
-
-  /* Fallback: Google News search by title */
-  const title = article.title || '';
-  return 'https://news.google.com/search?q=' + encodeURIComponent(title);
-}
-
 function openArticleFull(article){
-  /* 3D pop animation */
   scrollInner.style.transition = "transform .35s ease";
   scrollInner.style.transform = "perspective(900px) translateZ(40px)";
   setTimeout(() => {
@@ -439,23 +415,22 @@ function openArticleFull(article){
   const articleUrl = getArticleUrl(article);
 
   scrollInner.innerHTML = `
-    ${article.urlToImage ? 
-      `<img src="${article.urlToImage}" 
+    ${article.image ? 
+      `<img src="${article.image}" 
             style="width:100%;border-radius:10px;margin-bottom:20px;">`
       : ''
     }
 
     <h2>${article.title || ''}</h2>
-    <p>${article.content || article.description || ''}</p>
+    <p>${article.description || ''}</p>
 
     <button class="open-btn" onclick="window.open('${articleUrl}', '_blank')">
       Read More
     </button>
   `;
 }
-</script>
-<script>
-/* Swipe left/right navigation */
+
+/* Swipe navigation */
 let startX = 0;
 let endX = 0;
 
@@ -467,7 +442,6 @@ scrollArea.onpointerup = e => {
   endX = e.clientX;
   const dx = endX - startX;
 
-  /* Swipe right → previous article */
   if (dx > 80){
     if (currentIndex > 0){
       currentIndex--;
@@ -475,7 +449,6 @@ scrollArea.onpointerup = e => {
     }
   }
 
-  /* Swipe left → next article */
   if (dx < -80){
     if (currentIndex < currentList.length - 1){
       currentIndex++;
@@ -483,14 +456,13 @@ scrollArea.onpointerup = e => {
     }
   }
 };
-</script>
-<script>
+
+/* Momentum scroll */
 let isScrolling = false;
 let lastY = 0;
 let velocity = 0;
 let momentumFrame = null;
 
-/* Pointer down: begin drag */
 scrollArea.onpointerdown = e => {
   isScrolling = true;
   lastY = e.clientY;
@@ -498,7 +470,6 @@ scrollArea.onpointerdown = e => {
   cancelMomentum();
 };
 
-/* Pointer move: drag scroll */
 scrollArea.onpointermove = e => {
   if (!isScrolling) return;
   const dy = e.clientY - lastY;
@@ -507,13 +478,11 @@ scrollArea.onpointermove = e => {
   velocity = dy;
 };
 
-/* Pointer up: release and start momentum */
 scrollArea.onpointerup = e => {
   isScrolling = false;
   startMomentum();
 };
 
-/* Momentum physics */
 function startMomentum(){
   const friction = 0.92;
 
@@ -530,7 +499,6 @@ function startMomentum(){
   momentum();
 }
 
-/* Cancel momentum */
 function cancelMomentum(){
   if (momentumFrame){
     cancelAnimationFrame(momentumFrame);
@@ -538,7 +506,6 @@ function cancelMomentum(){
   }
 }
 
-/* Prevent scrolling past top/bottom */
 function clampScroll(){
   const maxScroll = 0;
   const minScroll = scrollArea.clientHeight - scrollInner.scrollHeight;
@@ -550,25 +517,24 @@ function clampScroll(){
 
   scrollInner.style.top = top + 'px';
 }
-</script>
-<script>
-/* Fetch trending headlines (worldwide, popularity) */
+
+/* Trending using Currents search */
 function fetchTrending(){
-  fetch(`https://newsapi.org/v2/everything?q=news&language=en&sortBy=popularity&apiKey=${NEWS_API_KEY}`)
+  fetch(`https://api.currentsapi.services/v1/search?keywords=news&language=en&apiKey=${CURRENTS_API_KEY}`)
     .then(r => r.json())
     .then(data => {
-      trendingList = data.articles || [];
+      trendingList = data.news || [];
       if(trendingList.length > 0){
         updateTrendingBar();
+      } else {
+        document.getElementById("trendingBar").textContent = "Trending: no data";
       }
     })
     .catch(err => {
-      const bar = document.getElementById("trendingBar");
-      bar.textContent = "Trending: error loading";
+      document.getElementById("trendingBar").textContent = "Trending: error";
     });
 }
 
-/* Animate trending bar updates */
 function updateTrendingBar(){
   const bar = document.getElementById("trendingBar");
   if (!trendingList.length) return;
@@ -584,12 +550,16 @@ function updateTrendingBar(){
   }, 300);
 }
 
-/* Open trending panel */
 function openTrending(){
   panel.classList.add('open');
   panelTitle.textContent = "TRENDING";
   scrollInner.innerHTML = "";
   scrollInner.style.top = "0px";
+
+  if (!trendingList.length){
+    scrollInner.innerHTML = "<p>No trending articles.</p>";
+    return;
+  }
 
   trendingList.forEach(a => {
     const div = document.createElement('div');
@@ -604,26 +574,17 @@ function openTrending(){
     scrollInner.appendChild(div);
   });
 }
-</script>
-<script>
-/* Fetch breaking news (search for 'breaking' etc.) */
+
+/* Breaking using Currents search */
 function fetchBreaking(){
-  fetch(`https://newsapi.org/v2/everything?q=breaking%20news&language=en&sortBy=publishedAt&apiKey=${NEWS_API_KEY}`)
+  fetch(`https://api.currentsapi.services/v1/search?keywords=breaking&language=en&apiKey=${CURRENTS_API_KEY}`)
     .then(r => r.json())
     .then(data => {
-      const list = data.articles || [];
-      const breaking = list.filter(a => {
-        const t = (a.title || '').toLowerCase();
-        const d = (a.description || '').toLowerCase();
-        const c = (a.content || '').toLowerCase();
-        return t.includes("breaking") || d.includes("breaking") || c.includes("breaking") ||
-               t.includes("urgent") || t.includes("alert") || t.includes("live");
-      });
-
+      breakingList = data.news || [];
       const bar = document.getElementById("breakingBar");
 
-      if (breaking && breaking.length > 0){
-        const headline = breaking[0].title || '';
+      if (breakingList.length > 0){
+        const headline = breakingList[0].title || '';
         bar.style.display = "block";
         bar.textContent = "BREAKING NEWS: " + headline;
 
@@ -633,8 +594,6 @@ function fetchBreaking(){
         if (lower.includes("urgent") || lower.includes("alert")){
           bar.classList.add("critical");
         }
-
-        window.breakingList = breaking;
       } else {
         bar.style.display = "none";
       }
@@ -645,14 +604,18 @@ function fetchBreaking(){
     });
 }
 
-/* Open breaking news panel */
 function openBreaking(){
   panel.classList.add('open');
   panelTitle.textContent = "BREAKING NEWS";
   scrollInner.innerHTML = "";
   scrollInner.style.top = "0px";
 
-  (window.breakingList || []).forEach(a => {
+  if (!breakingList.length){
+    scrollInner.innerHTML = "<p>No breaking articles.</p>";
+    return;
+  }
+
+  breakingList.forEach(a => {
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.innerHTML = `
@@ -665,45 +628,16 @@ function openBreaking(){
     scrollInner.appendChild(div);
   });
 }
-</script>
-<script>
-/* Refresh category every 20 seconds */
-function refreshCategory(category){
-  if (!panel.classList.contains("open")) return;
-  if (activeCategory !== category) return;
-
-  const q = categoryToQuery(category);
-
-  fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&apiKey=${NEWS_API_KEY}`)
-    .then(r => r.json())
-    .then(data => {
-      currentList = data.articles || [];
-      scrollInner.style.top = "0px";
-      renderArticleList();
-    })
-    .catch(err => {
-      scrollInner.innerHTML = `<p>Error refreshing news: ${err}</p>`;
-    });
-}
 
 /* Close panel */
 function closePanel(){
   panel.classList.remove('open');
 }
-</script>
-<script>
-/* Start trending auto-refresh */
+
+/* Init: fetch trending + breaking once */
 fetchTrending();
-setInterval(fetchTrending, 30000);
-
-/* Start breaking news auto-refresh */
 fetchBreaking();
-setInterval(fetchBreaking, 15000);
-
-/* Ensure scroll starts at top when panel opens */
-panel.addEventListener("transitionend", () => {
-  scrollInner.style.top = "0px";
-});
 </script>
+
 </body>
 </html>
