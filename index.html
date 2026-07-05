@@ -2,14 +2,14 @@
   <h1 class="ar-title">News</h1>
 
   <div class="ar-grid">
-    <div class="ar-card" data-cat="world">World</div>
-    <div class="ar-card" data-cat="nation">Nation</div>
-    <div class="ar-card" data-cat="business">Business</div>
-    <div class="ar-card" data-cat="technology">Technology</div>
-    <div class="ar-card" data-cat="science">Science</div>
-    <div class="ar-card" data-cat="health">Health</div>
-    <div class="ar-card" data-cat="sports">Sports</div>
-    <div class="ar-card" data-cat="entertainment">Entertainment</div>
+    <button class="ar-card" data-cat="world">World</button>
+    <button class="ar-card" data-cat="nation">Nation</button>
+    <button class="ar-card" data-cat="business">Business</button>
+    <button class="ar-card" data-cat="technology">Technology</button>
+    <button class="ar-card" data-cat="science">Science</button>
+    <button class="ar-card" data-cat="health">Health</button>
+    <button class="ar-card" data-cat="sports">Sports</button>
+    <button class="ar-card" data-cat="entertainment">Entertainment</button>
   </div>
 </div>
 <style>
@@ -17,35 +17,36 @@
   position:fixed;inset:0;
   display:flex;flex-direction:column;
   padding:20px;
-  background:rgba(0,0,0,.4);
+  background:rgba(0,0,0,.45);
   backdrop-filter:blur(12px);
 }
 
 .ar-title{
-  font-size:22px;
+  font-size:24px;
   margin-bottom:16px;
 }
 
 .ar-grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
-  gap:14px;
+  gap:16px;
 }
 
 .ar-card{
   background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.15);
-  padding:18px;
+  padding:20px;
   border-radius:14px;
-  font-size:16px;
+  font-size:18px;
   text-align:center;
   cursor:pointer;
   transition:all .2s;
+  color:#fff;
 }
 
 .ar-card:hover{
   background:rgba(255,255,255,.18);
-  transform:translateY(-3px);
+  transform:translateY(-4px);
 }
 </style>
 <div class="ar-panel" id="newsPanel">
@@ -80,7 +81,7 @@
 #panelClose{
   background:#333;
   border:none;
-  padding:8px 12px;
+  padding:8px 14px;
   border-radius:8px;
   color:#fff;
   cursor:pointer;
@@ -109,23 +110,23 @@ const panelContent=document.getElementById('panelContent');
 const panelClose=document.getElementById('panelClose');
 
 function freezeBackground(){
-  document.body.style.pointerEvents='none';
+  document.getElementById('newsHome').style.pointerEvents='none';
   panel.style.pointerEvents='auto';
 }
 
 function unfreezeBackground(){
-  document.body.style.pointerEvents='auto';
+  document.getElementById('newsHome').style.pointerEvents='auto';
 }
 
 cards.forEach(card=>{
-  card.addEventListener('pointerup',()=>{
+  card.addEventListener('pointerdown',()=>{
     const cat=card.dataset.cat;
     panelTitle.textContent=card.textContent;
     openPanel(cat);
   });
 });
 
-panelClose.addEventListener('pointerup',()=>{
+panelClose.addEventListener('pointerdown',()=>{
   panel.classList.remove('open');
   unfreezeBackground();
 });
@@ -135,7 +136,9 @@ async function openPanel(category){
   panelContent.innerHTML='<p>Loading...</p>';
 
   try{
-    const res=await fetch(`https://gnews.io/api/v4/top-headlines?category=${category}&lang=en&country=us&apikey=demo`);
+    const res=await fetch(
+      `https://gnews.io/api/v4/top-headlines?category=${category}&lang=en&country=us&apikey=demo`
+    );
     const data=await res.json();
 
     panelContent.innerHTML='';
@@ -152,7 +155,7 @@ async function openPanel(category){
         <h3>${a.title}</h3>
         <p>${a.description||''}</p>
       `;
-      div.addEventListener('pointerup',()=>{
+      div.addEventListener('pointerdown',()=>{
         openArticle(a);
       });
       panelContent.appendChild(div);
@@ -162,13 +165,13 @@ async function openPanel(category){
     panelContent.innerHTML='<p>Error loading articles.</p>';
   }
 }
+
 function openArticle(article){
   panelContent.innerHTML=`
     <h2>${article.title}</h2>
     <p>${article.content||article.description||''}</p>
   `;
 }
-
 let startY=0;
 
 panel.addEventListener('pointerdown',e=>{
@@ -183,3 +186,5 @@ panel.addEventListener('pointerup',e=>{
   }
 });
 </script>
+</body>
+</html>
