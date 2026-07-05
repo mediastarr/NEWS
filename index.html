@@ -304,7 +304,7 @@ body{
 <div class="ar-panel" id="newsPanel">
   <div class="ar-panel-header">
     <span id="panelTitle"></span>
-    <button id="panelClose" onclick="closePanel()">✕</button>
+    <button id="panelClose" onclick="handleBack()">✕</button>
   </div>
 
   <div class="ar-scroll" id="scrollArea">
@@ -330,6 +330,23 @@ let trendingList = [];
 let currentIndex = 0;
 let currentList = [];
 let breakingList = [];
+
+/* Back-navigation state: X goes back one level (article -> list -> closed)
+   instead of always closing straight to the home tabs. */
+let currentView = 'list'; // 'list' | 'article' | 'reader'
+let listRenderer = null;  // whichever render*List function is currently active
+let currentArticleRef = null; // article currently open, for reader -> article back step
+
+function handleBack(){
+  if (currentView === 'reader'){
+    openArticleFull(currentArticleRef);
+  } else if (currentView === 'article'){
+    scrollInner.style.top = "0px";
+    if (listRenderer) listRenderer();
+  } else {
+    closePanel();
+  }
+}
 
 /* Map UI category to Currents category or search */
 function isCategory(cat){
@@ -361,6 +378,7 @@ function openPanel(category){
     .then(data => {
       currentList = data.news || [];
       currentIndex = 0;
+      listRenderer = renderArticleList;
       renderArticleList();
     })
     .catch(err => {
@@ -406,6 +424,7 @@ function renderArticleList(){
     scrollInner.appendChild(div);
   });
 
+  currentView = 'list';
   focusFirst();
 }
 
@@ -439,15 +458,39 @@ function openArticleFull(article){
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
-    <a class="open-btn" id="readMoreBtn" tabindex="0" href="${articleUrl}" target="_top" rel="noopener">
+    <button class="open-btn" id="readMoreBtn" tabindex="0">
       Read More
-    </a>
+    </button>
   `;
 
-  document.getElementById('readMoreBtn').addEventListener('click', () => {
-    panelTitle.textContent = "Opening…";
-  });
+  document.getElementById('readMoreBtn').onclick = () => {
+    openArticleReader(articleUrl, article);
+  };
 
+  currentView = 'article';
+  currentArticleRef = article;
+  focusFirst();
+}
+
+/* This platform blocks top-level navigation away from the app, so
+   "Read More" loads the article inside an iframe instead of leaving.
+   Note: many publishers set headers that refuse to render inside any
+   frame, so this will work for some sources and show blank for others
+   — that refusal comes from the source site, not this app. */
+function openArticleReader(url, article){
+  scrollInner.innerHTML = `
+    <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
+    <iframe
+      src="${url}"
+      style="width:100%;height:65vh;border:none;border-radius:10px;margin-top:10px;background:#fff;"
+    ></iframe>
+  `;
+
+  document.getElementById('readerBack').onclick = () => {
+    openArticleFull(article);
+  };
+
+  currentView = 'reader';
   focusFirst();
 }
 
@@ -574,28 +617,40 @@ function updateTrendingBar(){
 function openTrending(){
   panel.classList.add('open');
   panelTitle.textContent = "TRENDING";
-  scrollInner.innerHTML = "";
   scrollInner.style.top = "0px";
+  listRenderer = renderTrendingList;
+  renderTrendingList();
+}
+
+function renderTrendingList(){
+  scrollInner.innerHTML = "";
 
   if (!trendingList.length){
     scrollInner.innerHTML = "<p>No trending articles.</p>";
     return;
   }
 
-  trendingList.forEach(a => {
+  trendingList.forEach((a, i) => {
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.innerHTML = `
       <h3>${a.title || ''}</h3>
       <p>${a.description || ''}</p>
-      <button class="open-btn" onclick="openArticleFull(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+      <button class="open-btn" onclick="openTrendingIndex(${i})">
         Open Article
       </button>
     `;
     scrollInner.appendChild(div);
   });
 
+  currentView = 'list';
   focusFirst();
+}
+
+function openTrendingIndex(i){
+  currentList = trendingList;
+  currentIndex = i;
+  openArticleFull(trendingList[i]);
 }
 
 /* Breaking using Currents search */
@@ -630,28 +685,40 @@ function fetchBreaking(){
 function openBreaking(){
   panel.classList.add('open');
   panelTitle.textContent = "BREAKING NEWS";
-  scrollInner.innerHTML = "";
   scrollInner.style.top = "0px";
+  listRenderer = renderBreakingList;
+  renderBreakingList();
+}
+
+function renderBreakingList(){
+  scrollInner.innerHTML = "";
 
   if (!breakingList.length){
     scrollInner.innerHTML = "<p>No breaking articles.</p>";
     return;
   }
 
-  breakingList.forEach(a => {
+  breakingList.forEach((a, i) => {
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.innerHTML = `
       <h3>${a.title || ''}</h3>
       <p>${a.description || ''}</p>
-      <button class="open-btn" onclick="openArticleFull(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+      <button class="open-btn" onclick="openBreakingIndex(${i})">
         Open Article
       </button>
     `;
     scrollInner.appendChild(div);
   });
 
+  currentView = 'list';
   focusFirst();
+}
+
+function openBreakingIndex(i){
+  currentList = breakingList;
+  currentIndex = i;
+  openArticleFull(breakingList[i]);
 }
 
 /* Close panel */
@@ -719,7 +786,7 @@ document.addEventListener('keydown', (e) => {
       openArticleFull(currentList[currentIndex]);
     }
   } else if (e.key === 'Escape'){
-    closePanel();
+    handleBack();
   }
 });
 
