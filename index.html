@@ -1,0 +1,179 @@
+<div class="ar-news-home" id="newsHome">
+  <h1 class="ar-title">News</h1>
+
+  <div class="ar-grid">
+    <div class="ar-card" data-cat="us">U.S.</div>
+    <div class="ar-card" data-cat="world">World</div>
+    <div class="ar-card" data-cat="politics">Politics</div>
+    <div class="ar-card" data-cat="business">Business</div>
+    <div class="ar-card" data-cat="tech">Tech</div>
+    <div class="ar-card" data-cat="science">Science</div>
+    <div class="ar-card" data-cat="health">Health</div>
+    <div class="ar-card" data-cat="sports">Sports</div>
+  </div>
+</div>
+<style>
+.ar-news-home{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  padding:20px;
+  background:rgba(0,0,0,.4);
+  backdrop-filter:blur(12px);
+}
+
+.ar-title{
+  font-size:22px;
+  margin-bottom:16px;
+}
+
+.ar-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.ar-card{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  padding:18px;
+  border-radius:14px;
+  font-size:16px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .2s;
+}
+
+.ar-card:hover{
+  background:rgba(255,255,255,.18);
+  transform:translateY(-3px);
+}
+</style>
+<div class="ar-panel" id="newsPanel">
+  <div class="ar-panel-header">
+    <span id="panelTitle"></span>
+    <button id="panelClose">✕</button>
+  </div>
+
+  <div class="ar-panel-content" id="panelContent"></div>
+</div>
+<style>
+.ar-panel{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(18px);
+  padding:20px;
+  display:none;
+  flex-direction:column;
+  overflow-y:auto;
+}
+
+.ar-panel.open{display:flex;}
+
+.ar-panel-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+#panelClose{
+  background:#333;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  color:#fff;
+  cursor:pointer;
+}
+
+.ar-article{
+  padding:14px 0;
+  border-bottom:1px solid #444;
+}
+
+.ar-article h3{
+  font-size:18px;
+  margin-bottom:6px;
+}
+
+.ar-article p{
+  font-size:14px;
+  color:#ccc;
+}
+</style>
+<script>
+const cards=document.querySelectorAll('.ar-card');
+const panel=document.getElementById('newsPanel');
+const panelTitle=document.getElementById('panelTitle');
+const panelContent=document.getElementById('panelContent');
+const panelClose=document.getElementById('panelClose');
+
+function freezeBackground(){
+  document.body.style.pointerEvents='none';
+  panel.style.pointerEvents='auto';
+}
+
+function unfreezeBackground(){
+  document.body.style.pointerEvents='auto';
+}
+
+cards.forEach(card=>{
+  card.addEventListener('pointerup',()=>{
+    const cat=card.dataset.cat;
+    panelTitle.textContent=card.textContent;
+    openPanel(cat);
+  });
+});
+
+panelClose.addEventListener('pointerup',()=>{
+  panel.classList.remove('open');
+  unfreezeBackground();
+});
+async function openPanel(category){
+  panel.classList.add('open');
+  freezeBackground();
+  panelContent.innerHTML='<p>Loading...</p>';
+
+  try{
+    const res=await fetch(`https://newsapi.org/v2/top-headlines?category=${category}&country=us&apiKey=YOUR_KEY`);
+    const data=await res.json();
+
+    panelContent.innerHTML='';
+
+    data.articles.forEach(a=>{
+      const div=document.createElement('div');
+      div.className='ar-article';
+      div.innerHTML=`
+        <h3>${a.title}</h3>
+        <p>${a.description||''}</p>
+      `;
+      div.addEventListener('pointerup',()=>{
+        openArticle(a);
+      });
+      panelContent.appendChild(div);
+    });
+
+  }catch(e){
+    panelContent.innerHTML='<p>Error loading articles.</p>';
+  }
+}
+function openArticle(article){
+  panelContent.innerHTML=`
+    <h2>${article.title}</h2>
+    <p>${article.content||article.description||''}</p>
+  `;
+}
+
+let startY=0;
+
+panel.addEventListener('pointerdown',e=>{
+  startY=e.clientY;
+});
+
+panel.addEventListener('pointerup',e=>{
+  const dy=e.clientY-startY;
+  if(dy>80){
+    panel.classList.remove('open');
+    unfreezeBackground();
+  }
+});
+</script>
