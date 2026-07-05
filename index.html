@@ -326,7 +326,7 @@ const CURRENTS_BASE = "https://currents-proxy.mediastarr86.workers.dev";
 
 /* Shared query filters: real news only (no discussion/articles),
    drop non-news sources like CVE trackers, 30 per page. */
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20; // Free tier max page_size is 20
 const EXCLUDED_DOMAINS = "vuldb.com";
 const COMMON_FILTERS = `type=1&domain_not=${EXCLUDED_DOMAINS}&page_size=${PAGE_SIZE}`;
 
@@ -399,7 +399,11 @@ function fetchCategoryPage(page, append){
   fetch(`${categoryUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      const news = data.news || [];
+      if (!data.news){
+        throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
+      }
+
+      const news = data.news;
       categoryLastCount = news.length;
       categoryPage = page;
 
@@ -415,7 +419,7 @@ function fetchCategoryPage(page, append){
     })
     .catch(err => {
       if (!append){
-        scrollInner.innerHTML = `<p>Error loading news: ${err}</p>`;
+        scrollInner.innerHTML = `<p>Error loading news: ${err.message || err}</p>`;
       }
     });
 }
@@ -658,7 +662,11 @@ function fetchTrendingPage(page, append){
   fetch(`${trendingUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      const news = data.news || [];
+      if (!data.news){
+        throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
+      }
+
+      const news = data.news;
       trendingLastCount = news.length;
       trendingPage = page;
 
@@ -676,7 +684,7 @@ function fetchTrendingPage(page, append){
     })
     .catch(err => {
       if (!append){
-        document.getElementById("trendingBar").textContent = "Trending: error";
+        document.getElementById("trendingBar").textContent = "Trending: " + (err.message || err);
       }
     });
 }
@@ -758,7 +766,11 @@ function fetchBreakingPage(page, append){
   fetch(`${breakingUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
     .then(data => {
-      const news = data.news || [];
+      if (!data.news){
+        throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
+      }
+
+      const news = data.news;
       breakingLastCount = news.length;
       breakingPage = page;
 
@@ -788,6 +800,7 @@ function fetchBreakingPage(page, append){
     })
     .catch(err => {
       if (!append){
+        console.error("Breaking news error:", err.message || err);
         const bar = document.getElementById("breakingBar");
         bar.style.display = "none";
       }
