@@ -906,12 +906,20 @@ document.addEventListener('keydown', (e) => {
 
   if (e.key === 'ArrowDown'){
     e.preventDefault();
-    cancelMomentum();
-    focusStep(1);
+    if (currentView === 'reader'){
+      scrollReader(200);
+    } else {
+      cancelMomentum();
+      focusStep(1);
+    }
   } else if (e.key === 'ArrowUp'){
     e.preventDefault();
-    cancelMomentum();
-    focusStep(-1);
+    if (currentView === 'reader'){
+      scrollReader(-200);
+    } else {
+      cancelMomentum();
+      focusStep(-1);
+    }
   } else if (e.key === 'ArrowRight'){
     if (currentList.length && currentIndex < currentList.length - 1){
       currentIndex++;
@@ -926,6 +934,16 @@ document.addEventListener('keydown', (e) => {
     handleBack();
   }
 });
+
+function scrollReader(amount){
+  const frame = document.getElementById('readerFrame');
+  if (!frame) return;
+  try {
+    frame.contentWindow.scrollBy(0, amount);
+  } catch (err) {
+    // Cross-origin content (shouldn't happen with srcdoc, but just in case)
+  }
+}
 
 /* Init: fetch trending + breaking once */
 fetchTrending();
