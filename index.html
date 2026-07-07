@@ -330,6 +330,21 @@ const PAGE_SIZE = 20; // Free tier max page_size is 20
 const EXCLUDED_DOMAINS = "vuldb.com";
 const COMMON_FILTERS = `type=1&domain_not=${EXCLUDED_DOMAINS}&page_size=${PAGE_SIZE}`;
 
+/* Currents sometimes returns the same story more than once (synced from
+   multiple category feeds, or a straight re-publish). Dedupe by normalized
+   title so lists don't show the same headline twice in a row. */
+function dedupeArticles(list){
+  const seen = new Set();
+  const result = [];
+  for (const a of list){
+    const key = (a.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    result.push(a);
+  }
+  return result;
+}
+
 let activeCategory = null;
 let trendingIndex = 0;
 let trendingList = [];
@@ -403,12 +418,12 @@ function fetchCategoryPage(page, append){
         throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
       }
 
-      const news = data.news;
+      const news = dedupeArticles(data.news);
       categoryLastCount = news.length;
       categoryPage = page;
 
       if (append){
-        currentList = currentList.concat(news);
+        currentList = dedupeArticles(currentList.concat(news));
       } else {
         currentList = news;
         currentIndex = 0;
@@ -688,12 +703,12 @@ function fetchTrendingPage(page, append){
         throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
       }
 
-      const news = data.news;
+      const news = dedupeArticles(data.news);
       trendingLastCount = news.length;
       trendingPage = page;
 
       if (append){
-        trendingList = trendingList.concat(news);
+        trendingList = dedupeArticles(trendingList.concat(news));
         renderTrendingList();
       } else {
         trendingList = news;
@@ -792,12 +807,12 @@ function fetchBreakingPage(page, append){
         throw new Error(data.msg || (data.details && JSON.stringify(data.details)) || 'Unknown API error');
       }
 
-      const news = data.news;
+      const news = dedupeArticles(data.news);
       breakingLastCount = news.length;
       breakingPage = page;
 
       if (append){
-        breakingList = breakingList.concat(news);
+        breakingList = dedupeArticles(breakingList.concat(news));
         renderBreakingList();
         return;
       }
@@ -967,9 +982,13 @@ function scrollReader(amount){
   }
 }
 
-/* Init: fetch trending + breaking once */
+/* Init: fetch trending + breaking once, then auto-rotate the ticker */
 fetchTrending();
 fetchBreaking();
+
+setInterval(() => {
+  if (trendingList.length > 1) updateTrendingBar();
+}, 6000);
 </script>
 
 </body>
