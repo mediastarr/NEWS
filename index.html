@@ -543,9 +543,9 @@ function openArticleFull(article){
    HTML server-side through the Worker (same trick as the news API) and
    injects it via srcdoc — that's DOM content arriving through our own
    fetch(), not a live navigation/frame to another origin, so it isn't
-   subject to the same block. Some sites will still render awkwardly
-   (scripts are disabled in the sandboxed frame for safety), but the
-   readable text and images should come through. */
+   subject to the same block. The Worker strips all third-party <script>
+   tags from extracted content, so allow-scripts here only ever runs our
+   own trusted template (needed for the nested YouTube embed's player). */
 function openArticleReader(url, article){
   scrollInner.style.top = "0px";
   scrollInner.innerHTML = `
@@ -553,7 +553,7 @@ function openArticleReader(url, article){
     <p id="readerStatus" style="margin-top:14px;">Loading article…</p>
     <iframe
       id="readerFrame"
-      sandbox="allow-same-origin"
+      sandbox="allow-same-origin allow-scripts allow-popups"
       style="width:100%;height:65vh;border:none;border-radius:10px;margin-top:10px;background:#fff;display:none;"
     ></iframe>
   `;
@@ -580,12 +580,29 @@ function openArticleReader(url, article){
         return;
       }
 
-      const preview = html.replace(/\s+/g, ' ').slice(0, 160);
-      console.log(`Reader debug — HTTP ${httpStatus}, length ${html.length}, preview: ${preview}`);
-
       frame.srcdoc = html;
       frame.style.display = 'block';
       if (status) status.remove();
+
+      // Links inside the reader content are real <a href> tags now.
+      // Intercept taps on them and route through our own reader pipeline
+      // instead of letting them attempt a raw cross-origin navigation
+      // (which this platform blocks, same as the original Read More issue).
+      frame.onload = () => {
+        try {
+          const linkEls = frame.contentDocument.querySelectorAll('a[href]');
+          linkEls.forEach(a => {
+            a.addEventListener('click', (e) => {
+              e.preventDefault();
+              const href = a.getAttribute('href');
+              if (href) openArticleReader(href, article);
+            });
+          });
+        } catch (err) {
+          // If cross-frame access is ever blocked, links just won't be
+          // tappable — not fatal, the article text still displays fine.
+        }
+      };
     })
     .catch(err => {
       clearTimeout(timeoutId);
@@ -989,6 +1006,31 @@ fetchBreaking();
 setInterval(() => {
   if (trendingList.length > 1) updateTrendingBar();
 }, 6000);
+
+/* Keep news genuinely "latest" without the person having to do anything:
+   re-fetch breaking news and trending periodically in the background, and
+   silently refresh the currently open list's first page too — but only
+   while someone is actually looking at a list, never while they're mid-
+   article, so it never yanks content out from under them. */
+setInterval(() => {
+  fetchBreaking();
+}, 3 * 60 * 1000);
+
+setInterval(() => {
+  fetchTrending();
+}, 5 * 60 * 1000);
+
+setInterval(() => {
+  if (!panel.classList.contains('open') || currentView !== 'list') return;
+
+  if (listRenderer === renderArticleList && categoryUrlBase){
+    fetchCategoryPage(1, false);
+  } else if (listRenderer === renderTrendingList){
+    fetchTrending();
+  } else if (listRenderer === renderBreakingList){
+    fetchBreaking();
+  }
+}, 3 * 60 * 1000);
 </script>
 
 </body>
