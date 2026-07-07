@@ -490,6 +490,7 @@ function openArticleIndex(i){
 }
 
 function openArticleFull(article){
+  scrollInner.style.top = "0px";
   scrollInner.style.transition = "opacity .25s ease";
   scrollInner.style.opacity = 0;
   setTimeout(() => {
@@ -531,6 +532,7 @@ function openArticleFull(article){
    (scripts are disabled in the sandboxed frame for safety), but the
    readable text and images should come through. */
 function openArticleReader(url, article){
+  scrollInner.style.top = "0px";
   scrollInner.innerHTML = `
     <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
     <p id="readerStatus" style="margin-top:14px;">Loading article…</p>
