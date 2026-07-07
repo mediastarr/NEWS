@@ -289,6 +289,16 @@ body{
     BREAKING NEWS: Loading...
   </div>
 
+  <div class="search-box" style="display:flex;gap:8px;margin-bottom:20px;">
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Search any topic…"
+      style="flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#111;color:#fff;font-size:16px;"
+    >
+    <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
+  </div>
+
   <div class="ar-grid">
     <button class="ar-card" onclick="openPanel('world')">🌍 World</button>
     <button class="ar-card" onclick="openPanel('business')">💼 Business</button>
@@ -406,6 +416,23 @@ function openPanel(category){
     categoryUrlBase = `${CURRENTS_BASE}/v1/latest-news?language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   }
 
+  categoryPage = 1;
+  fetchCategoryPage(1, false);
+}
+
+function openSearch(query){
+  query = (query || '').trim();
+  if (!query) return;
+
+  activeCategory = null;
+  document.body.className = "";
+
+  panel.classList.add('open');
+  panelTitle.textContent = 'SEARCH: ' + query.toUpperCase();
+  scrollInner.innerHTML = '<p>Loading...</p>';
+  scrollInner.style.top = "0px";
+
+  categoryUrlBase = `${CURRENTS_BASE}/v1/search?keywords=${encodeURIComponent(query)}&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   categoryPage = 1;
   fetchCategoryPage(1, false);
 }
@@ -549,7 +576,11 @@ function openArticleFull(article){
 function openArticleReader(url, article){
   scrollInner.style.top = "0px";
   scrollInner.innerHTML = `
-    <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
+      <button class="open-btn" id="readerFontDown" tabindex="0" style="margin-top:0;">A−</button>
+      <button class="open-btn" id="readerFontUp" tabindex="0" style="margin-top:0;">A+</button>
+    </div>
     <p id="readerStatus" style="margin-top:14px;">Loading article…</p>
     <iframe
       id="readerFrame"
@@ -561,6 +592,8 @@ function openArticleReader(url, article){
   document.getElementById('readerBack').onclick = () => {
     openArticleFull(article);
   };
+  document.getElementById('readerFontDown').onclick = () => adjustReaderFont(-2);
+  document.getElementById('readerFontUp').onclick = () => adjustReaderFont(2);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -590,6 +623,8 @@ function openArticleReader(url, article){
       // (which this platform blocks, same as the original Read More issue).
       frame.onload = () => {
         try {
+          applyReaderFontSize();
+
           const linkEls = frame.contentDocument.querySelectorAll('a[href]');
           linkEls.forEach(a => {
             a.addEventListener('click', (e) => {
@@ -615,6 +650,19 @@ function openArticleReader(url, article){
 
   currentView = 'reader';
   focusFirst();
+}
+
+let readerFontSize = 19; // matches the default in renderReaderPage's own CSS
+
+function applyReaderFontSize(){
+  const frame = document.getElementById('readerFrame');
+  if (!frame || !frame.contentDocument || !frame.contentDocument.body) return;
+  frame.contentDocument.body.style.fontSize = readerFontSize + 'px';
+}
+
+function adjustReaderFont(delta){
+  readerFontSize = Math.max(14, Math.min(32, readerFontSize + delta));
+  applyReaderFontSize();
 }
 
 /* Swipe navigation */
@@ -998,6 +1046,14 @@ function scrollReader(amount){
     // Cross-origin content (shouldn't happen with srcdoc, but just in case)
   }
 }
+
+/* Search box on the home screen */
+document.getElementById('searchSubmit').onclick = () => {
+  openSearch(document.getElementById('searchInput').value);
+};
+document.getElementById('searchInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') openSearch(e.target.value);
+});
 
 /* Init: fetch trending + breaking once, then auto-rotate the ticker */
 fetchTrending();
