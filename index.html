@@ -308,6 +308,7 @@ body{
     <button class="ar-card" onclick="openPanel('sports')">🏆 Sports</button>
     <button class="ar-card" onclick="openPanel('health')">❤️ Health</button>
     <button class="ar-card" onclick="openPanel('politics')">🏛️ Politics</button>
+    <button class="ar-card" onclick="openVideos()">🎥 Videos</button>
   </div>
 </div>
 
@@ -437,6 +438,42 @@ function openSearch(query){
   fetchCategoryPage(1, false);
 }
 
+/* Currents API has no "has video" filter, so this can't be a guaranteed
+   video-only feed — it's a search leaning toward video-likely coverage
+   (watch/clip/footage-style stories), combined with the video badge below
+   so it's honest about what it actually found rather than promising more
+   than the API can deliver. */
+function openVideos(){
+  activeCategory = null;
+  document.body.className = "";
+
+  panel.classList.add('open');
+  panelTitle.textContent = 'VIDEOS';
+  scrollInner.innerHTML = '<p>Loading...</p>';
+  scrollInner.style.top = "0px";
+
+  const videoQuery = encodeURIComponent('video OR clip OR footage OR watch');
+  categoryUrlBase = `${CURRENTS_BASE}/v1/search?query=${videoQuery}&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
+  categoryPage = 1;
+  fetchCategoryPage(1, false);
+}
+
+/* Best-effort guess at whether an article likely has an embedded video,
+   based on its title/description text. Not exact (Currents doesn't expose
+   real video metadata), but gives a useful signal in list view before
+   opening — and the reader itself will actually embed the video if one's
+   found when you open the article. */
+function isLikelyVideo(article){
+  const text = ((article.title || '') + ' ' + (article.description || '')).toLowerCase();
+  return /\bwatch\b|\bvideo\b|\bclip\b|\bfootage\b|\btrailer\b/.test(text);
+}
+
+function videoBadgeHtml(article){
+  return isLikelyVideo(article)
+    ? `<span style="display:inline-block;background:rgba(255,0,80,.25);border:1px solid rgba(255,0,80,.5);color:#fff;font-size:12px;padding:2px 8px;border-radius:12px;margin-bottom:6px;">🎥 Video</span><br>`
+    : '';
+}
+
 function fetchCategoryPage(page, append){
   fetch(`${categoryUrlBase}&page_number=${page}`, { cache: "no-store" })
     .then(r => r.json())
@@ -497,6 +534,7 @@ function renderArticleList(){
         ${imgHtml}
       </div>
 
+      ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
       <p>${a.description || ''}</p>
 
@@ -830,6 +868,7 @@ function renderTrendingList(){
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.innerHTML = `
+      ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
       <p>${a.description || ''}</p>
       <button class="open-btn" onclick="openTrendingIndex(${i})">
@@ -933,6 +972,7 @@ function renderBreakingList(){
     const div = document.createElement('div');
     div.className = 'ar-article';
     div.innerHTML = `
+      ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
       <p>${a.description || ''}</p>
       <button class="open-btn" onclick="openBreakingIndex(${i})">
