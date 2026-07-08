@@ -328,16 +328,13 @@ body{
       <input
         id="searchInput"
         type="text"
-        placeholder="Search any topic…"
+        placeholder="Tap to search…"
         readonly
         style="flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#111;color:#fff;font-size:16px;"
       >
       <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
     </div>
-    <div style="display:flex;gap:8px;margin-top:10px;">
-      <button class="open-btn" id="keyboardToggleBtn" tabindex="0" style="margin-top:0;flex:1;">⌨️ Keyboard</button>
-      <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:0;flex:1;">🎤 Voice</button>
-    </div>
+    <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:10px;width:100%;">🎤 Voice</button>
     <p id="voiceSearchStatus" style="margin:8px 0 0;font-size:14px;color:#aaa;"></p>
 
     <div id="keyboard" style="display:none;margin-top:10px;padding:10px;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.15);">
@@ -357,10 +354,11 @@ body{
         <div class="key-btn focusable" tabindex="0" data-key="!">!</div><div class="key-btn focusable" tabindex="0" data-key="?">?</div><div class="key-btn focusable" tabindex="0" data-key="-">-</div><div class="key-btn focusable" tabindex="0" data-key="'">'</div>
       </div>
       <div class="keyboard-row">
-        <div class="key-btn focusable" tabindex="0" data-key="123" id="numToggleBtn" style="flex:1.5;">123</div>
-        <div class="key-btn focusable" tabindex="0" data-key="SPACE" style="flex:3;">SPACE</div>
-        <div class="key-btn focusable" tabindex="0" data-key="DELETE" style="flex:1.5;">DEL</div>
-        <div class="key-btn focusable" tabindex="0" data-key="ENTER" style="flex:1.5;">GO</div>
+        <div class="key-btn focusable" tabindex="0" data-key="123" id="numToggleBtn" style="flex:1.2;">123</div>
+        <div class="key-btn focusable" tabindex="0" data-key="SPACE" style="flex:2.4;">SPACE</div>
+        <div class="key-btn focusable" tabindex="0" data-key="DELETE" style="flex:1.2;">DEL</div>
+        <div class="key-btn focusable" tabindex="0" data-key="ENTER" style="flex:1.2;">GO</div>
+        <div class="key-btn focusable" tabindex="0" data-key="BACK" style="flex:1.2;">← Back</div>
       </div>
     </div>
   </div>
@@ -1165,18 +1163,16 @@ document.getElementById('searchSubmit').onclick = () => {
 };
 
 const keyboardEl = document.getElementById('keyboard');
-const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
 const searchInputEl = document.getElementById('searchInput');
 let showingNumRow = false;
 
-keyboardToggleBtn.onclick = () => {
-  const opening = keyboardEl.style.display === 'none';
-  keyboardEl.style.display = opening ? 'block' : 'none';
-  if (opening){
-    const firstKey = keyboardEl.querySelector('.focusable');
-    if (firstKey) firstKey.focus();
-  }
-};
+function openKeyboard(){
+  keyboardEl.style.display = 'block';
+  const firstKey = keyboardEl.querySelector('.focusable');
+  if (firstKey) firstKey.focus();
+}
+searchInputEl.addEventListener('focus', openKeyboard);
+searchInputEl.addEventListener('click', openKeyboard);
 
 function handleKeyPress(key){
   if (key === 'DELETE'){
@@ -1185,6 +1181,8 @@ function handleKeyPress(key){
     searchInputEl.value += ' ';
   } else if (key === 'ENTER'){
     openSearch(searchInputEl.value);
+    keyboardEl.style.display = 'none';
+  } else if (key === 'BACK'){
     keyboardEl.style.display = 'none';
   } else if (key === '123'){
     showingNumRow = !showingNumRow;
