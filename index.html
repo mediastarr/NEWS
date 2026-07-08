@@ -1171,8 +1171,17 @@ function openKeyboard(){
   const firstKey = keyboardEl.querySelector('.focusable');
   if (firstKey) firstKey.focus();
 }
-searchInputEl.addEventListener('focus', openKeyboard);
+// Only a genuine tap or a deliberate Enter-while-focused opens the
+// keyboard — binding this to the 'focus' event was too broad, since
+// Down-navigation passing through the input on its way to the category
+// grid below also fires 'focus', opening the keyboard unintentionally.
 searchInputEl.addEventListener('click', openKeyboard);
+searchInputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    openKeyboard();
+  }
+});
 
 function handleKeyPress(key){
   if (key === 'DELETE'){
@@ -1235,7 +1244,16 @@ function moveKeyFocus(dx, dy){
     const r = k.getBoundingClientRect();
     return dy > 0 ? r.top > cur.top + 5 : r.top < cur.top - 5;
   });
-  if (!candidates.length) return;
+
+  if (!candidates.length){
+    // Nowhere left to go inside the keyboard grid.
+    if (dy < 0){
+      // Off the top row — exit upward to the Search button above.
+      const searchBtn = document.getElementById('searchSubmit');
+      if (searchBtn) searchBtn.focus();
+    }
+    return;
+  }
 
   const targetTop = dy > 0
     ? Math.min(...candidates.map(k => k.getBoundingClientRect().top))
@@ -1256,6 +1274,7 @@ function moveKeyFocus(dx, dy){
 document.addEventListener('keydown', (e) => {
   if (keyboardEl.style.display === 'none') return;
   if (panel.classList.contains('open')) return; // keyboard only lives on the home screen
+  if (!keyboardEl.contains(document.activeElement)) return; // focus has moved outside the keyboard — don't hijack
 
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
     e.preventDefault();
