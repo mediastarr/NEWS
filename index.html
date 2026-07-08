@@ -687,11 +687,15 @@ function openArticleFull(article){
    own trusted template (needed for the nested YouTube embed's player). */
 function openArticleReader(url, article){
   scrollInner.style.top = "0px";
+  readerScrollMode = false;
   scrollInner.innerHTML = `
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="open-btn" id="readerBack" tabindex="0">← Back</button>
       <button class="open-btn" id="readerFontDown" tabindex="0" style="margin-top:0;">A−</button>
       <button class="open-btn" id="readerFontUp" tabindex="0" style="margin-top:0;">A+</button>
+      <button class="open-btn" id="readerScrollToggle" tabindex="0" style="margin-top:0;">📖 Scroll</button>
+      <button class="open-btn" id="ytPlayPauseBtn" tabindex="0" style="margin-top:0;display:none;">⏸ Pause</button>
+      <button class="open-btn" id="ytMuteBtn" tabindex="0" style="margin-top:0;display:none;">🔊 Unmute</button>
     </div>
     <p id="readerStatus" style="margin-top:14px;">Loading article…</p>
     <iframe
@@ -706,6 +710,7 @@ function openArticleReader(url, article){
   };
   document.getElementById('readerFontDown').onclick = () => adjustReaderFont(-2);
   document.getElementById('readerFontUp').onclick = () => adjustReaderFont(2);
+  document.getElementById('readerScrollToggle').onclick = toggleReaderScrollMode;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -745,9 +750,18 @@ function openArticleReader(url, article){
               if (href) openArticleReader(href, article);
             });
           });
+
+          // If the article has a YouTube video embed, show Play/Pause and
+          // Mute controls up here in the outer page — buttons living inside
+          // the srcdoc content weren't reachable by Up/Down navigation at
+          // all, since that only cycles through the outer page's elements.
+          const ytFrame = frame.contentDocument.getElementById('ytPlayer');
+          if (ytFrame){
+            setupYouTubeControls(ytFrame);
+          }
         } catch (err) {
-          // If cross-frame access is ever blocked, links just won't be
-          // tappable — not fatal, the article text still displays fine.
+          // If cross-frame access is ever blocked, links/video controls
+          // just won't be tappable — not fatal, the text still displays.
         }
       };
     })
@@ -762,6 +776,35 @@ function openArticleReader(url, article){
 
   currentView = 'reader';
   focusFirst();
+}
+
+function setupYouTubeControls(ytFrame){
+  const playPauseBtn = document.getElementById('ytPlayPauseBtn');
+  const muteBtn = document.getElementById('ytMuteBtn');
+  if (!playPauseBtn || !muteBtn) return;
+
+  let playing = true;
+  let muted = true;
+
+  function ytCmd(func){
+    if (ytFrame && ytFrame.contentWindow){
+      ytFrame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
+    }
+  }
+
+  playPauseBtn.style.display = 'inline-block';
+  muteBtn.style.display = 'inline-block';
+
+  playPauseBtn.onclick = () => {
+    playing = !playing;
+    ytCmd(playing ? 'playVideo' : 'pauseVideo');
+    playPauseBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
+  };
+  muteBtn.onclick = () => {
+    muted = !muted;
+    ytCmd(muted ? 'mute' : 'unMute');
+    muteBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+  };
 }
 
 let readerFontSize = 19; // matches the default in renderReaderPage's own CSS
@@ -1120,29 +1163,33 @@ function focusFirst(){
 document.addEventListener('keydown', (e) => {
   if (!panel.classList.contains('open')) return;
 
+  if (currentView === 'reader' && readerScrollMode && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
+    e.preventDefault();
+    scrollReader(e.key === 'ArrowDown' ? 200 : -200);
+    return;
+  }
+
   if (e.key === 'ArrowDown'){
     e.preventDefault();
-    if (currentView === 'reader'){
-      scrollReader(200);
-    } else {
-      cancelMomentum();
-      focusStep(1);
-    }
+    cancelMomentum();
+    focusStep(1);
   } else if (e.key === 'ArrowUp'){
     e.preventDefault();
-    if (currentView === 'reader'){
-      scrollReader(-200);
-    } else {
-      cancelMomentum();
-      focusStep(-1);
-    }
+    cancelMomentum();
+    focusStep(-1);
   } else if (e.key === 'ArrowRight'){
-    if (currentList.length && currentIndex < currentList.length - 1){
+    e.preventDefault();
+    if (currentView === 'reader'){
+      focusStep(1);
+    } else if (currentList.length && currentIndex < currentList.length - 1){
       currentIndex++;
       openArticleFull(currentList[currentIndex]);
     }
   } else if (e.key === 'ArrowLeft'){
-    if (currentList.length && currentIndex > 0){
+    e.preventDefault();
+    if (currentView === 'reader'){
+      focusStep(-1);
+    } else if (currentList.length && currentIndex > 0){
       currentIndex--;
       openArticleFull(currentList[currentIndex]);
     }
@@ -1150,6 +1197,16 @@ document.addEventListener('keydown', (e) => {
     handleBack();
   }
 });
+
+let readerScrollMode = false;
+
+function toggleReaderScrollMode(){
+  readerScrollMode = !readerScrollMode;
+  const btn = document.getElementById('readerScrollToggle');
+  if (btn){
+    btn.textContent = readerScrollMode ? '✓ Reading (tap to select buttons)' : '📖 Scroll';
+  }
+}
 
 function scrollReader(amount){
   const frame = document.getElementById('readerFrame');
