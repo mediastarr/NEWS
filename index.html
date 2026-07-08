@@ -1165,7 +1165,7 @@ document.addEventListener('keydown', (e) => {
 
   if (currentView === 'reader' && readerScrollMode && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
     e.preventDefault();
-    scrollReader(e.key === 'ArrowDown' ? 200 : -200);
+    scrollReader(e.key === 'ArrowDown' ? 60 : -60);
     return;
   }
 
