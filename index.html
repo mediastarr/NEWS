@@ -628,6 +628,14 @@ function getArticleUrl(article){
   return 'https://news.google.com/search?q=' + encodeURIComponent(title);
 }
 
+function getArticleSource(article){
+  try {
+    return new URL(getArticleUrl(article)).hostname.replace(/^www\./, '');
+  } catch (e) {
+    return '';
+  }
+}
+
 function openArticleIndex(i){
   currentIndex = i;
   openArticleFull(currentList[i]);
@@ -642,6 +650,7 @@ function openArticleFull(article){
   }, 60);
 
   const articleUrl = getArticleUrl(article);
+  const source = getArticleSource(article);
 
   scrollInner.innerHTML = `
     ${article.image ? 
@@ -650,6 +659,7 @@ function openArticleFull(article){
       : ''
     }
 
+    ${source ? `<p style="color:#8ecbff;font-size:14px;margin:0 0 8px;">${source}</p>` : ''}
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
