@@ -315,11 +315,11 @@ body{
 <div class="ar-news-home" id="newsHome">
   <h1 class="ar-title">News</h1>
 
-  <div id="trendingBar" class="trending-bar" onclick="openTrending()">
+  <div id="trendingBar" class="trending-bar focusable" tabindex="0" onclick="openTrending()">
     Trending Now: Loading...
   </div>
 
-  <div id="breakingBar" class="breaking-alert" style="display:none;" onclick="openBreaking()">
+  <div id="breakingBar" class="breaking-alert focusable" tabindex="0" style="display:none;" onclick="openBreaking()">
     BREAKING NEWS: Loading...
   </div>
 
@@ -364,15 +364,15 @@ body{
   </div>
 
   <div class="ar-grid">
-    <button class="ar-card" onclick="openPanel('world')">🌍 World</button>
-    <button class="ar-card" onclick="openPanel('business')">💼 Business</button>
-    <button class="ar-card" onclick="openPanel('science')">🔬 Science</button>
-    <button class="ar-card" onclick="openPanel('technology')">🖥️ Technology</button>
-    <button class="ar-card" onclick="openPanel('entertainment')">🎬 Entertainment</button>
-    <button class="ar-card" onclick="openPanel('sports')">🏆 Sports</button>
-    <button class="ar-card" onclick="openPanel('health')">❤️ Health</button>
-    <button class="ar-card" onclick="openPanel('politics')">🏛️ Politics</button>
-    <button class="ar-card" onclick="openVideos()">🎥 Videos</button>
+    <button class="ar-card focusable" onclick="openPanel('world')">🌍 World</button>
+    <button class="ar-card focusable" onclick="openPanel('business')">💼 Business</button>
+    <button class="ar-card focusable" onclick="openPanel('science')">🔬 Science</button>
+    <button class="ar-card focusable" onclick="openPanel('technology')">🖥️ Technology</button>
+    <button class="ar-card focusable" onclick="openPanel('entertainment')">🎬 Entertainment</button>
+    <button class="ar-card focusable" onclick="openPanel('sports')">🏆 Sports</button>
+    <button class="ar-card focusable" onclick="openPanel('health')">❤️ Health</button>
+    <button class="ar-card focusable" onclick="openPanel('politics')">🏛️ Politics</button>
+    <button class="ar-card focusable" onclick="openVideos()">🎥 Videos</button>
   </div>
 </div>
 
@@ -1283,6 +1283,90 @@ document.addEventListener('keydown', (e) => {
     moveKeyFocus(dx, dy);
   } else if (e.key === 'Escape'){
     keyboardEl.style.display = 'none';
+  }
+});
+
+/* Home screen navigation — previously had none, so reaching it relied on
+   whatever native fallback focus behavior the browser provides, one
+   element at a time. This builds real spatial navigation (nearest element
+   in the direction pressed, based on actual on-screen position — so
+   Down from a left-column tile lands on the tile below it, not the one
+   beside it) plus wrap-around: Down from the very last tile jumps straight
+   to Trending Now at the top, and Up from Trending Now jumps straight to
+   the last tile, so neither end is ever more than one press away. */
+function getHomeFocusable(){
+  const candidates = [
+    document.getElementById('trendingBar'),
+    document.getElementById('breakingBar'),
+    document.getElementById('searchInput'),
+    document.getElementById('searchSubmit'),
+    document.getElementById('voiceSearchBtn'),
+    ...document.querySelectorAll('.ar-grid .ar-card')
+  ];
+  return candidates.filter(el => el && el.offsetParent !== null);
+}
+
+function homeFocusMove(dx, dy){
+  const items = getHomeFocusable();
+  if (!items.length) return;
+
+  let idx = items.indexOf(document.activeElement);
+  if (idx === -1){
+    items[0].focus({ preventScroll: true });
+    items[0].scrollIntoView({ block: 'nearest' });
+    return;
+  }
+
+  const cur = items[idx].getBoundingClientRect();
+  const curCenterX = (cur.left + cur.right) / 2;
+  const curCenterY = (cur.top + cur.bottom) / 2;
+
+  let best = null;
+  let bestDist = Infinity;
+
+  items.forEach(el => {
+    if (el === items[idx]) return;
+    const r = el.getBoundingClientRect();
+    const centerX = (r.left + r.right) / 2;
+    const centerY = (r.top + r.bottom) / 2;
+
+    if (dy > 0 && centerY <= curCenterY + 5) return;
+    if (dy < 0 && centerY >= curCenterY - 5) return;
+    if (dy === 0 && dx > 0 && centerX <= curCenterX + 5) return;
+    if (dy === 0 && dx < 0 && centerX >= curCenterX - 5) return;
+
+    const dist = Math.hypot(centerX - curCenterX, centerY - curCenterY);
+    if (dist < bestDist){ bestDist = dist; best = el; }
+  });
+
+  if (!best){
+    // Nothing further in this direction — wrap to the opposite end.
+    if (dy > 0) best = items[0];
+    else if (dy < 0) best = items[items.length - 1];
+  }
+
+  if (best){
+    best.focus({ preventScroll: true });
+    best.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+document.getElementById('trendingBar').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){ e.preventDefault(); openTrending(); }
+});
+document.getElementById('breakingBar').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){ e.preventDefault(); openBreaking(); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (panel.classList.contains('open')) return;
+  if (document.getElementById('keyboard').style.display !== 'none') return; // keyboard's own nav takes priority while open
+
+  if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)){
+    e.preventDefault();
+    const dx = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    const dy = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+    homeFocusMove(dx, dy);
   }
 });
 
