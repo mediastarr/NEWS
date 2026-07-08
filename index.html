@@ -289,18 +289,18 @@ body{
     BREAKING NEWS: Loading...
   </div>
 
-  <div class="search-box" style="display:flex;gap:8px;margin-bottom:20px;">
-    <input
-      id="searchInput"
-      type="text"
-      inputmode="text"
-      enterkeyhint="search"
-      autocomplete="off"
-      autocapitalize="off"
-      placeholder="Search any topic…"
-      style="flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#111;color:#fff;font-size:16px;"
-    >
-    <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
+  <div class="search-box" style="margin-bottom:20px;">
+    <div style="display:flex;gap:8px;">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search any topic…"
+        style="flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#111;color:#fff;font-size:16px;"
+      >
+      <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
+    </div>
+    <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:10px;width:100%;">🎤 Voice Search</button>
+    <p id="voiceSearchStatus" style="margin:8px 0 0;font-size:14px;color:#aaa;"></p>
   </div>
 
   <div class="ar-grid">
@@ -638,7 +638,7 @@ function openArticleReader(url, article){
   document.getElementById('readerFontUp').onclick = () => adjustReaderFont(2);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
   const status = document.getElementById('readerStatus');
 
   fetch(`${CURRENTS_BASE}/article?url=${encodeURIComponent(url)}`, { cache: "no-store", signal: controller.signal })
@@ -1091,13 +1091,58 @@ function scrollReader(amount){
   }
 }
 
-/* Search box on the home screen */
+/* Text search on the home screen. A prior version of this app dropped the
+   text input in favor of voice-only, based on Meta's own docs stating no
+   keyboard exists on this platform — but that turned out to only describe
+   the D-pad-style Neural Band navigation model for buttons/menus. A direct
+   tap on a genuine <input> apparently does still summon an on-screen
+   keyboard here, so both text and voice search are offered side by side. */
 document.getElementById('searchSubmit').onclick = () => {
   openSearch(document.getElementById('searchInput').value);
 };
 document.getElementById('searchInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') openSearch(e.target.value);
 });
+
+/* Voice search — a hands-free alternative alongside the text input above,
+   using the glasses' existing microphone via the standard Web Speech API. */
+const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+const voiceSearchStatus = document.getElementById('voiceSearchStatus');
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognitionAPI){
+  voiceSearchBtn.onclick = () => {
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    voiceSearchStatus.textContent = 'Listening…';
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      voiceSearchStatus.textContent = `Searching: "${transcript}"`;
+      openSearch(transcript);
+    };
+    recognition.onerror = () => {
+      voiceSearchStatus.textContent = "Didn't catch that — try again.";
+    };
+    recognition.onend = () => {
+      if (voiceSearchStatus.textContent === 'Listening…'){
+        voiceSearchStatus.textContent = '';
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      voiceSearchStatus.textContent = 'Voice search unavailable.';
+    }
+  };
+} else {
+  voiceSearchBtn.disabled = true;
+  voiceSearchStatus.textContent = 'Voice search not supported in this browser.';
+}
 
 /* Init: fetch trending + breaking once, then auto-rotate the ticker */
 fetchTrending();
