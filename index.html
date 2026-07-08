@@ -40,6 +40,40 @@ body{
   margin-top:10px;
 }
 
+.keyboard-row{
+  display:flex;
+  width:100%;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.key-btn{
+  flex:1;
+  padding:12px 0;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.2);
+  font-size:15px;
+  background:#222;
+  color:#fff;
+  text-align:center;
+  cursor:pointer;
+  user-select:none;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.key-btn:active{
+  background:#333;
+}
+
+.focusable:focus{
+  outline:none;
+  border-color:#00d4ff;
+  box-shadow:0 0 16px rgba(0,212,255,.5);
+}
+
 /* Trending Bar */
 .trending-bar{
   background:#111;
@@ -295,12 +329,40 @@ body{
         id="searchInput"
         type="text"
         placeholder="Search any topic…"
+        readonly
         style="flex:1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:#111;color:#fff;font-size:16px;"
       >
       <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
     </div>
-    <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:10px;width:100%;">🎤 Voice Search</button>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="open-btn" id="keyboardToggleBtn" tabindex="0" style="margin-top:0;flex:1;">⌨️ Keyboard</button>
+      <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:0;flex:1;">🎤 Voice</button>
+    </div>
     <p id="voiceSearchStatus" style="margin:8px 0 0;font-size:14px;color:#aaa;"></p>
+
+    <div id="keyboard" style="display:none;margin-top:10px;padding:10px;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.15);">
+      <div class="keyboard-row" id="kbRowLetters0">
+        <div class="key-btn focusable" tabindex="0" data-key="q">Q</div><div class="key-btn focusable" tabindex="0" data-key="w">W</div><div class="key-btn focusable" tabindex="0" data-key="e">E</div><div class="key-btn focusable" tabindex="0" data-key="r">R</div><div class="key-btn focusable" tabindex="0" data-key="t">T</div><div class="key-btn focusable" tabindex="0" data-key="y">Y</div><div class="key-btn focusable" tabindex="0" data-key="u">U</div><div class="key-btn focusable" tabindex="0" data-key="i">I</div><div class="key-btn focusable" tabindex="0" data-key="o">O</div><div class="key-btn focusable" tabindex="0" data-key="p">P</div>
+      </div>
+      <div class="keyboard-row" id="kbRowLetters1">
+        <div class="key-btn focusable" tabindex="0" data-key="a">A</div><div class="key-btn focusable" tabindex="0" data-key="s">S</div><div class="key-btn focusable" tabindex="0" data-key="d">D</div><div class="key-btn focusable" tabindex="0" data-key="f">F</div><div class="key-btn focusable" tabindex="0" data-key="g">G</div><div class="key-btn focusable" tabindex="0" data-key="h">H</div><div class="key-btn focusable" tabindex="0" data-key="j">J</div><div class="key-btn focusable" tabindex="0" data-key="k">K</div><div class="key-btn focusable" tabindex="0" data-key="l">L</div>
+      </div>
+      <div class="keyboard-row" id="kbRowLetters2">
+        <div class="key-btn focusable" tabindex="0" data-key="z">Z</div><div class="key-btn focusable" tabindex="0" data-key="x">X</div><div class="key-btn focusable" tabindex="0" data-key="c">C</div><div class="key-btn focusable" tabindex="0" data-key="v">V</div><div class="key-btn focusable" tabindex="0" data-key="b">B</div><div class="key-btn focusable" tabindex="0" data-key="n">N</div><div class="key-btn focusable" tabindex="0" data-key="m">M</div>
+      </div>
+      <div class="keyboard-row" id="kbRowNums0" style="display:none;">
+        <div class="key-btn focusable" tabindex="0" data-key="1">1</div><div class="key-btn focusable" tabindex="0" data-key="2">2</div><div class="key-btn focusable" tabindex="0" data-key="3">3</div><div class="key-btn focusable" tabindex="0" data-key="4">4</div><div class="key-btn focusable" tabindex="0" data-key="5">5</div><div class="key-btn focusable" tabindex="0" data-key="6">6</div><div class="key-btn focusable" tabindex="0" data-key="7">7</div><div class="key-btn focusable" tabindex="0" data-key="8">8</div><div class="key-btn focusable" tabindex="0" data-key="9">9</div><div class="key-btn focusable" tabindex="0" data-key="0">0</div>
+      </div>
+      <div class="keyboard-row" id="kbRowNums1" style="display:none;">
+        <div class="key-btn focusable" tabindex="0" data-key="!">!</div><div class="key-btn focusable" tabindex="0" data-key="?">?</div><div class="key-btn focusable" tabindex="0" data-key="-">-</div><div class="key-btn focusable" tabindex="0" data-key="'">'</div>
+      </div>
+      <div class="keyboard-row">
+        <div class="key-btn focusable" tabindex="0" data-key="123" id="numToggleBtn" style="flex:1.5;">123</div>
+        <div class="key-btn focusable" tabindex="0" data-key="SPACE" style="flex:3;">SPACE</div>
+        <div class="key-btn focusable" tabindex="0" data-key="DELETE" style="flex:1.5;">DEL</div>
+        <div class="key-btn focusable" tabindex="0" data-key="ENTER" style="flex:1.5;">GO</div>
+      </div>
+    </div>
   </div>
 
   <div class="ar-grid">
@@ -1091,20 +1153,123 @@ function scrollReader(amount){
   }
 }
 
-/* Text search on the home screen. A prior version of this app dropped the
-   text input in favor of voice-only, based on Meta's own docs stating no
-   keyboard exists on this platform — but that turned out to only describe
-   the D-pad-style Neural Band navigation model for buttons/menus. A direct
-   tap on a genuine <input> apparently does still summon an on-screen
-   keyboard here, so both text and voice search are offered side by side. */
+/* Text search on the home screen. There's no native OS keyboard on this
+   platform (confirmed in Meta's own docs — every interactive element must
+   be reached via Neural Band gestures / arrow keys + Enter). The working
+   pattern, same one used elsewhere on this device, is a custom on-screen
+   keyboard built from focusable buttons rather than relying on a real
+   <input> to summon anything. The input itself is read-only; the keyboard
+   below is what actually writes into it. */
 document.getElementById('searchSubmit').onclick = () => {
   openSearch(document.getElementById('searchInput').value);
 };
-document.getElementById('searchInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') openSearch(e.target.value);
+
+const keyboardEl = document.getElementById('keyboard');
+const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
+const searchInputEl = document.getElementById('searchInput');
+let showingNumRow = false;
+
+keyboardToggleBtn.onclick = () => {
+  const opening = keyboardEl.style.display === 'none';
+  keyboardEl.style.display = opening ? 'block' : 'none';
+  if (opening){
+    const firstKey = keyboardEl.querySelector('.focusable');
+    if (firstKey) firstKey.focus();
+  }
+};
+
+function handleKeyPress(key){
+  if (key === 'DELETE'){
+    searchInputEl.value = searchInputEl.value.slice(0, -1);
+  } else if (key === 'SPACE'){
+    searchInputEl.value += ' ';
+  } else if (key === 'ENTER'){
+    openSearch(searchInputEl.value);
+    keyboardEl.style.display = 'none';
+  } else if (key === '123'){
+    showingNumRow = !showingNumRow;
+    document.getElementById('kbRowLetters0').style.display = showingNumRow ? 'none' : 'flex';
+    document.getElementById('kbRowLetters1').style.display = showingNumRow ? 'none' : 'flex';
+    document.getElementById('kbRowLetters2').style.display = showingNumRow ? 'none' : 'flex';
+    document.getElementById('kbRowNums0').style.display = showingNumRow ? 'flex' : 'none';
+    document.getElementById('kbRowNums1').style.display = showingNumRow ? 'flex' : 'none';
+    document.getElementById('numToggleBtn').textContent = showingNumRow ? 'ABC' : '123';
+  } else {
+    searchInputEl.value += key;
+  }
+}
+
+document.querySelectorAll('#keyboard .key-btn').forEach(keyEl => {
+  keyEl.addEventListener('click', () => handleKeyPress(keyEl.dataset.key));
+  keyEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      handleKeyPress(keyEl.dataset.key);
+    }
+  });
 });
 
-/* Voice search — a hands-free alternative alongside the text input above,
+/* 2D spatial navigation across the keyboard grid, since it's a real grid
+   (not a flat list like the rest of the app) — Left/Right move within a
+   row, Up/Down jump to the nearest key above/below by actual on-screen
+   position rather than by a fixed row-width assumption. */
+function moveKeyFocus(dx, dy){
+  const keys = Array.from(document.querySelectorAll('#keyboard .focusable'))
+    .filter(el => el.offsetParent !== null);
+  if (!keys.length) return;
+
+  let idx = keys.indexOf(document.activeElement);
+  if (idx === -1){
+    keys[0].focus();
+    return;
+  }
+
+  if (dx !== 0){
+    const newIdx = Math.max(0, Math.min(keys.length - 1, idx + dx));
+    keys[newIdx].focus();
+    return;
+  }
+
+  const cur = keys[idx].getBoundingClientRect();
+  const curCenterX = (cur.left + cur.right) / 2;
+
+  const candidates = keys.filter(k => {
+    const r = k.getBoundingClientRect();
+    return dy > 0 ? r.top > cur.top + 5 : r.top < cur.top - 5;
+  });
+  if (!candidates.length) return;
+
+  const targetTop = dy > 0
+    ? Math.min(...candidates.map(k => k.getBoundingClientRect().top))
+    : Math.max(...candidates.map(k => k.getBoundingClientRect().top));
+  const rowCandidates = candidates.filter(k => Math.abs(k.getBoundingClientRect().top - targetTop) < 5);
+
+  let best = rowCandidates[0];
+  let bestDist = Infinity;
+  rowCandidates.forEach(k => {
+    const r = k.getBoundingClientRect();
+    const dist = Math.abs((r.left + r.right) / 2 - curCenterX);
+    if (dist < bestDist){ bestDist = dist; best = k; }
+  });
+
+  if (best) best.focus();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (keyboardEl.style.display === 'none') return;
+  if (panel.classList.contains('open')) return; // keyboard only lives on the home screen
+
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+    e.preventDefault();
+    const dx = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    const dy = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+    moveKeyFocus(dx, dy);
+  } else if (e.key === 'Escape'){
+    keyboardEl.style.display = 'none';
+  }
+});
+
+/* Voice search — a hands-free alternative alongside the keyboard above,
    using the glasses' existing microphone via the standard Web Speech API. */
 const voiceSearchBtn = document.getElementById('voiceSearchBtn');
 const voiceSearchStatus = document.getElementById('voiceSearchStatus');
@@ -1124,8 +1289,15 @@ if (SpeechRecognitionAPI){
       voiceSearchStatus.textContent = `Searching: "${transcript}"`;
       openSearch(transcript);
     };
-    recognition.onerror = () => {
-      voiceSearchStatus.textContent = "Didn't catch that — try again.";
+    recognition.onerror = (e) => {
+      const reasons = {
+        'not-allowed': 'Microphone permission was denied. Check the site/app permissions for microphone access.',
+        'audio-capture': 'No microphone found or it\'s unavailable.',
+        'no-speech': 'No speech detected — try speaking right after tapping.',
+        'network': 'Network error during voice recognition.',
+        'service-not-allowed': 'Speech service blocked in this browser.'
+      };
+      voiceSearchStatus.textContent = reasons[e.error] || `Voice search error: ${e.error}`;
     };
     recognition.onend = () => {
       if (voiceSearchStatus.textContent === 'Listening…'){
