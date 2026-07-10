@@ -185,6 +185,7 @@ body::-webkit-scrollbar{
   height:230px;
   margin:0 auto 8px;
   overflow:hidden;
+  perspective:1000px;
 }
 
 .carousel-hint{
@@ -212,12 +213,19 @@ body::-webkit-scrollbar{
   align-items:center;
   justify-content:center;
   gap:8px;
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
 
-  --tx:0px; --scale:.75; --op:0; --blur:0px;
-  transform:translate(-50%,0) translate(var(--tx),0) scale(var(--scale));
+  --tx:0px; --rot:0deg; --tz:0px; --scale:.7; --op:0; --blur:0px;
+  transform:
+    translateX(-50%)
+    translateX(var(--tx))
+    translateZ(var(--tz))
+    rotateY(var(--rot))
+    scale(var(--scale));
   opacity:var(--op);
   filter:blur(var(--blur));
-  transition:transform .3s ease, opacity .3s ease, filter .3s ease;
+  transition:transform .35s cubic-bezier(.22,.68,.36,1), opacity .35s ease, filter .35s ease;
   pointer-events:none;
 }
 
@@ -226,20 +234,20 @@ body::-webkit-scrollbar{
 .carousel-card .cc-sub{ font-size:12px; color:rgba(255,255,255,.7); }
 
 .carousel-card.cc-center{
-  --tx:0px; --scale:1; --op:1; --blur:0px;
+  --tx:0px; --rot:0deg; --tz:0px; --scale:1; --op:1; --blur:0px;
   pointer-events:auto;
   z-index:3;
 }
 .carousel-card.cc-prev{
-  --tx:-170px; --scale:.8; --op:.55; --blur:.5px;
+  --tx:-135px; --rot:42deg; --tz:-80px; --scale:.82; --op:.6; --blur:.5px;
   z-index:2;
 }
 .carousel-card.cc-next{
-  --tx:170px; --scale:.8; --op:.55; --blur:.5px;
+  --tx:135px; --rot:-42deg; --tz:-80px; --scale:.82; --op:.6; --blur:.5px;
   z-index:2;
 }
 .carousel-card.cc-far{
-  --tx:0px; --scale:.6; --op:0;
+  --tx:0px; --rot:0deg; --tz:-150px; --scale:.6; --op:0;
 }
 
 .carousel.focusable:focus .carousel-card.cc-center{
