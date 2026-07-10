@@ -373,6 +373,7 @@ body{
     <button class="ar-card focusable" onclick="openPanel('health')">❤️ Health</button>
     <button class="ar-card focusable" onclick="openPanel('politics')">🏛️ Politics</button>
     <button class="ar-card focusable" onclick="openVideos()">🎥 Videos</button>
+    <button class="ar-card focusable" onclick="openLocal()">📍 Local</button>
   </div>
 </div>
 
@@ -520,6 +521,61 @@ function openVideos(){
   categoryUrlBase = `${CURRENTS_BASE}/v1/search?query=${videoQuery}&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
   categoryPage = 1;
   fetchCategoryPage(1, false);
+}
+
+/* Local news: detects roughly where you are and filters Currents API's
+   latest-news by country code. This is additive alongside World, not a
+   replacement — World still shows broad international coverage exactly
+   as before; this just adds one more way to slice the news. */
+function openLocal(){
+  activeCategory = null;
+  document.body.className = "";
+
+  panel.classList.add('open');
+  panelTitle.textContent = 'LOCAL';
+  scrollInner.innerHTML = '<p>Detecting your location…</p>';
+  scrollInner.style.top = "0px";
+
+  if (!navigator.geolocation){
+    showLocalError("This browser doesn't support location detection.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+        .then(r => r.json())
+        .then(data => {
+          const countryCode = (data.countryCode || '').toLowerCase();
+          if (!countryCode){
+            showLocalError("Couldn't determine your country from your location.");
+            return;
+          }
+          panelTitle.textContent = 'LOCAL: ' + (data.countryName || countryCode.toUpperCase());
+          categoryUrlBase = `${CURRENTS_BASE}/v1/latest-news?country=${countryCode}&language=en&${COMMON_FILTERS}&apiKey=${CURRENTS_API_KEY}`;
+          categoryPage = 1;
+          fetchCategoryPage(1, false);
+        })
+        .catch(() => showLocalError("Couldn't look up your location's country."));
+    },
+    (err) => {
+      const reasons = {
+        1: "Location access was denied. Enable it in your browser/app permissions to use Local news.",
+        2: "Your location couldn't be determined right now.",
+        3: "Location detection timed out."
+      };
+      showLocalError(reasons[err.code] || "Couldn't get your location.");
+    },
+    { timeout: 10000 }
+  );
+}
+
+function showLocalError(message){
+  scrollInner.innerHTML = `
+    <p>${message}</p>
+    <button class="open-btn" onclick="openLocal()">Try Again</button>
+  `;
 }
 
 /* Best-effort guess at whether an article likely has an embedded video,
