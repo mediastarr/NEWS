@@ -160,76 +160,70 @@ body{
    style) instead of a full boxy border. Focused tiles brighten and scale
    up; everything else dims and softens slightly, via :has() — a real
    sense of foreground/background depth rather than a flat list. */
-.ar-grid{
+.carousel{
   position:relative;
-  height:330px;
-  margin:0 auto 10px;
-  max-width:480px;
+  height:230px;
+  margin:0 auto 8px;
+  overflow:hidden;
 }
 
-.ar-card{
+.carousel-hint{
+  text-align:center;
+  font-size:13px;
+  color:rgba(255,255,255,.5);
+  margin:0 0 10px;
+}
+
+.carousel-card{
   position:absolute;
   top:0;
   left:50%;
-  width:88px;
-  margin-left:-44px;
-  background:transparent !important;
-  border:none;
-  padding:14px 6px;
-  font-size:13px;
-  line-height:1.3;
+  width:150px;
+  height:210px;
+  margin-left:-75px;
+  border-radius:18px;
+  padding:20px 14px;
+  box-sizing:border-box;
   text-align:center;
-  cursor:pointer;
   color:#fff;
-  text-shadow:0 0 10px rgba(255,255,255,.4);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
 
-  --tx:0px; --ty:0px; --scale:1; --blur:0px; --op:1;
-  transform:translate(-50%, 0) translate(var(--tx), var(--ty)) scale(var(--scale));
-  filter:blur(var(--blur));
+  --tx:0px; --scale:.75; --op:0; --blur:0px;
+  transform:translate(-50%,0) translate(var(--tx),0) scale(var(--scale));
   opacity:var(--op);
-  transition:transform .25s ease, filter .25s ease, opacity .25s ease;
-}
-
-.ar-card::before,
-.ar-card::after{
-  content:"";
-  position:absolute;
-  width:14px;
-  height:14px;
-  border:1.5px solid currentColor;
-  opacity:.6;
+  filter:blur(var(--blur));
+  transition:transform .3s ease, opacity .3s ease, filter .3s ease;
   pointer-events:none;
 }
-.ar-card::before{ top:0; left:0; border-right:none; border-bottom:none; }
-.ar-card::after{ bottom:0; right:0; border-left:none; border-top:none; }
 
-/* Back row — World, Business, Science, Technology, Entertainment: further
-   away, smaller, dimmer, reinforcing depth even before anything's focused */
-.ar-grid .ar-card:nth-child(1){ --tx:-145.7px; --ty:82.4px;  --scale:.8; --op:.8; }
-.ar-grid .ar-card:nth-child(2){ --tx:-83.7px;  --ty:22.0px;  --scale:.8; --op:.8; }
-.ar-grid .ar-card:nth-child(3){ --tx:0px;      --ty:0px;     --scale:.8; --op:.8; }
-.ar-grid .ar-card:nth-child(4){ --tx:83.7px;   --ty:22.0px;  --scale:.8; --op:.8; }
-.ar-grid .ar-card:nth-child(5){ --tx:145.7px;  --ty:82.4px;  --scale:.8; --op:.8; }
+.carousel-card .cc-icon{ font-size:36px; }
+.carousel-card .cc-label{ font-size:17px; font-weight:600; text-shadow:0 0 10px rgba(255,255,255,.5); }
+.carousel-card .cc-sub{ font-size:12px; color:rgba(255,255,255,.7); }
 
-/* Front row — Sports, Health, Politics, Videos, Local: closer, full size */
-.ar-grid .ar-card:nth-child(6){ --tx:-199.2px; --ty:245px; }
-.ar-grid .ar-card:nth-child(7){ --tx:-115px;   --ty:160.8px; }
-.ar-grid .ar-card:nth-child(8){ --tx:0px;      --ty:130px; }
-.ar-grid .ar-card:nth-child(9){ --tx:115px;    --ty:160.8px; }
-.ar-grid .ar-card:nth-child(10){ --tx:199.2px; --ty:245px; }
-
-/* These come after the row-positioning rules above so they win the
-   specificity tiebreak (equal specificity, later source order wins) —
-   otherwise a focused back-row card would stay dim instead of brightening */
-.ar-grid .ar-card:focus{
-  --scale:1.18;
-  --op:1;
-  z-index:5;
+.carousel-card.cc-center{
+  --tx:0px; --scale:1; --op:1; --blur:0px;
+  pointer-events:auto;
+  z-index:3;
+}
+.carousel-card.cc-prev{
+  --tx:-170px; --scale:.8; --op:.55; --blur:.5px;
+  z-index:2;
+}
+.carousel-card.cc-next{
+  --tx:170px; --scale:.8; --op:.55; --blur:.5px;
+  z-index:2;
+}
+.carousel-card.cc-far{
+  --tx:0px; --scale:.6; --op:0;
 }
 
-.ar-grid:has(.ar-card:focus) .ar-card:not(:focus){
-  --blur:1px;
-  --op:.5;
+.carousel.focusable:focus .carousel-card.cc-center{
+  box-shadow:0 0 24px currentColor;
 }
 
 /* PANEL */
@@ -454,18 +448,8 @@ body{
     </div>
   </div>
 
-  <div class="ar-grid">
-    <button class="ar-card focusable" onclick="openPanel('world')">🌍 World</button>
-    <button class="ar-card focusable" onclick="openPanel('business')">💼 Business</button>
-    <button class="ar-card focusable" onclick="openPanel('science')">🔬 Science</button>
-    <button class="ar-card focusable" onclick="openPanel('technology')">🖥️ Technology</button>
-    <button class="ar-card focusable" onclick="openPanel('entertainment')">🎬 Entertainment</button>
-    <button class="ar-card focusable" onclick="openPanel('sports')">🏆 Sports</button>
-    <button class="ar-card focusable" onclick="openPanel('health')">❤️ Health</button>
-    <button class="ar-card focusable" onclick="openPanel('politics')">🏛️ Politics</button>
-    <button class="ar-card focusable" onclick="openVideos()">🎥 Videos</button>
-    <button class="ar-card focusable" onclick="openLocal()">📍 Local</button>
-  </div>
+  <div id="categoryCarousel" class="carousel focusable" tabindex="0"></div>
+  <p class="carousel-hint">◄ ► to browse · enter to open</p>
 </div>
 
 <div class="ar-panel" id="newsPanel">
@@ -1554,7 +1538,7 @@ function getHomeFocusable(){
     document.getElementById('breakingBar'),
     document.getElementById('searchInput'),
     document.getElementById('searchSubmit'),
-    ...document.querySelectorAll('.ar-grid .ar-card')
+    document.getElementById('categoryCarousel')
   ];
   return candidates.filter(el => el && el.offsetParent !== null);
 }
@@ -1611,9 +1595,81 @@ document.getElementById('breakingBar').addEventListener('keydown', (e) => {
   if (e.key === 'Enter'){ e.preventDefault(); openBreaking(); }
 });
 
+/* Category carousel: one centered card, neighbors peeking at the edges,
+   Left/Right browses, Enter opens whichever is centered. Scales to any
+   number of categories without redoing per-item layout math each time,
+   unlike the previous fixed arc positions. */
+const CAROUSEL_CATEGORIES = [
+  { icon:'🌍', label:'World',         sub:'global coverage',   color:'#0078ff', action:() => openPanel('world') },
+  { icon:'💼', label:'Business',      sub:'markets & industry',color:'#ffc800', action:() => openPanel('business') },
+  { icon:'🔬', label:'Science',       sub:'discovery',         color:'#b400ff', action:() => openPanel('science') },
+  { icon:'🖥️', label:'Technology',    sub:'tech news',         color:'#00e0e0', action:() => openPanel('technology') },
+  { icon:'🎬', label:'Entertainment', sub:'film, tv & more',   color:'#ff0096', action:() => openPanel('entertainment') },
+  { icon:'🏆', label:'Sports',        sub:'scores & recaps',   color:'#00d878', action:() => openPanel('sports') },
+  { icon:'❤️', label:'Health',        sub:'wellness',          color:'#00c8a8', action:() => openPanel('health') },
+  { icon:'🏛️', label:'Politics',      sub:'policy & elections',color:'#ff3c3c', action:() => openPanel('politics') },
+  { icon:'🎥', label:'Videos',        sub:'video-first stories',color:'#ff8c00', action:() => openVideos() },
+  { icon:'📍', label:'Local',         sub:'near you',          color:'#4da6ff', action:() => openLocal() }
+];
+
+let carouselIndex = 0;
+const carouselEl = document.getElementById('categoryCarousel');
+
+function renderCarousel(){
+  carouselEl.innerHTML = '';
+  const n = CAROUSEL_CATEGORIES.length;
+
+  CAROUSEL_CATEGORIES.forEach((cat, i) => {
+    let offset = i - carouselIndex;
+    if (offset > n / 2) offset -= n;
+    if (offset < -n / 2) offset += n;
+
+    let posClass = 'cc-far';
+    if (offset === 0) posClass = 'cc-center';
+    else if (offset === -1) posClass = 'cc-prev';
+    else if (offset === 1) posClass = 'cc-next';
+
+    const card = document.createElement('div');
+    card.className = `carousel-card ${posClass}`;
+    card.style.color = cat.color;
+    card.style.background = `${cat.color}22`;
+    card.style.border = `1px solid ${cat.color}88`;
+    card.innerHTML = `
+      <div class="cc-icon">${cat.icon}</div>
+      <div class="cc-label" style="color:#fff;">${cat.label}</div>
+      <div class="cc-sub">${cat.sub}</div>
+    `;
+    if (offset === 0){
+      card.onclick = () => cat.action();
+    } else {
+      const targetIndex = i;
+      card.onclick = () => { carouselIndex = targetIndex; renderCarousel(); };
+    }
+    carouselEl.appendChild(card);
+  });
+}
+
+carouselEl.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight'){
+    e.preventDefault();
+    carouselIndex = (carouselIndex + 1) % CAROUSEL_CATEGORIES.length;
+    renderCarousel();
+  } else if (e.key === 'ArrowLeft'){
+    e.preventDefault();
+    carouselIndex = (carouselIndex - 1 + CAROUSEL_CATEGORIES.length) % CAROUSEL_CATEGORIES.length;
+    renderCarousel();
+  } else if (e.key === 'Enter'){
+    e.preventDefault();
+    CAROUSEL_CATEGORIES[carouselIndex].action();
+  }
+});
+
+renderCarousel();
+
 document.addEventListener('keydown', (e) => {
   if (panel.classList.contains('open')) return;
   if (document.getElementById('keyboard').style.display !== 'none') return; // keyboard's own nav takes priority while open
+  if (document.activeElement === carouselEl && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter')) return; // carousel's own handler takes it
 
   if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)){
     e.preventDefault();
