@@ -404,10 +404,6 @@ body{
 <div class="ar-news-home" id="newsHome">
   <h1 class="ar-title">News</h1>
 
-  <div id="weatherWidget" style="display:none;background:#111;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:15px;">
-    <span id="weatherText">Loading weather…</span>
-  </div>
-
   <div id="trendingBar" class="trending-bar focusable" tabindex="0" onclick="openTrending()">
     Trending Now: Loading...
   </div>
@@ -427,8 +423,10 @@ body{
       >
       <button class="open-btn" id="searchSubmit" style="margin-top:0;">Search</button>
     </div>
-    <button class="open-btn" id="voiceSearchBtn" tabindex="0" style="margin-top:10px;width:100%;">🎤 Voice</button>
-    <p id="voiceSearchStatus" style="margin:8px 0 0;font-size:14px;color:#aaa;"></p>
+
+    <div id="weatherWidget" style="display:none;background:#111;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;margin-top:10px;font-size:15px;">
+      <span id="weatherText">Loading weather…</span>
+    </div>
 
     <div id="keyboard" style="display:none;margin-top:10px;padding:10px;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.15);">
       <div class="keyboard-row" id="kbRowLetters0">
@@ -1556,7 +1554,6 @@ function getHomeFocusable(){
     document.getElementById('breakingBar'),
     document.getElementById('searchInput'),
     document.getElementById('searchSubmit'),
-    document.getElementById('voiceSearchBtn'),
     ...document.querySelectorAll('.ar-grid .ar-card')
   ];
   return candidates.filter(el => el && el.offsetParent !== null);
@@ -1625,53 +1622,6 @@ document.addEventListener('keydown', (e) => {
     homeFocusMove(dx, dy);
   }
 });
-
-/* Voice search — a hands-free alternative alongside the keyboard above,
-   using the glasses' existing microphone via the standard Web Speech API. */
-const voiceSearchBtn = document.getElementById('voiceSearchBtn');
-const voiceSearchStatus = document.getElementById('voiceSearchStatus');
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-if (SpeechRecognitionAPI){
-  voiceSearchBtn.onclick = () => {
-    const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    voiceSearchStatus.textContent = 'Listening…';
-
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      voiceSearchStatus.textContent = `Searching: "${transcript}"`;
-      openSearch(transcript);
-    };
-    recognition.onerror = (e) => {
-      const reasons = {
-        'not-allowed': 'Microphone permission was denied. Check the site/app permissions for microphone access.',
-        'audio-capture': 'No microphone found or it\'s unavailable.',
-        'no-speech': 'No speech detected — try speaking right after tapping.',
-        'network': 'Network error during voice recognition.',
-        'service-not-allowed': 'Speech service blocked in this browser.'
-      };
-      voiceSearchStatus.textContent = reasons[e.error] || `Voice search error: ${e.error}`;
-    };
-    recognition.onend = () => {
-      if (voiceSearchStatus.textContent === 'Listening…'){
-        voiceSearchStatus.textContent = '';
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch (err) {
-      voiceSearchStatus.textContent = 'Voice search unavailable.';
-    }
-  };
-} else {
-  voiceSearchBtn.disabled = true;
-  voiceSearchStatus.textContent = 'Voice search not supported in this browser.';
-}
 
 /* Init: fetch trending + breaking once, then auto-rotate the ticker */
 fetchTrending();
