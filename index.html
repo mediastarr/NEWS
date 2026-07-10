@@ -201,7 +201,6 @@ body::-webkit-scrollbar{
   left:50%;
   width:150px;
   height:210px;
-  margin-left:-75px;
   border-radius:18px;
   padding:20px 14px;
   box-sizing:border-box;
@@ -710,7 +709,14 @@ const WEATHER_CODES = {
 };
 
 function loadWeather(){
-  if (!navigator.geolocation) return;
+  const widget = document.getElementById('weatherWidget');
+  const text = document.getElementById('weatherText');
+
+  if (!navigator.geolocation){
+    text.textContent = "Weather unavailable: location not supported by this browser.";
+    widget.style.display = 'block';
+    return;
+  }
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -719,18 +725,31 @@ function loadWeather(){
         .then(r => r.json())
         .then(data => {
           const cw = data.current_weather;
-          if (!cw) return;
+          if (!cw){
+            text.textContent = "Weather unavailable: no data for your location.";
+            widget.style.display = 'block';
+            return;
+          }
 
           const desc = WEATHER_CODES[cw.weathercode] || '🌡️ Weather';
           const temp = Math.round(cw.temperature);
-          const widget = document.getElementById('weatherWidget');
-          const text = document.getElementById('weatherText');
           text.textContent = `${desc} · ${temp}°F`;
           widget.style.display = 'block';
         })
-        .catch(() => { /* fail silently — widget just stays hidden */ });
+        .catch((err) => {
+          text.textContent = `Weather unavailable: ${err.message || 'request failed'}.`;
+          widget.style.display = 'block';
+        });
     },
-    () => { /* permission denied or unavailable — widget stays hidden, no nagging */ },
+    (err) => {
+      const reasons = {
+        1: "Weather unavailable: location permission denied.",
+        2: "Weather unavailable: position couldn't be determined.",
+        3: "Weather unavailable: location request timed out."
+      };
+      text.textContent = reasons[err.code] || "Weather unavailable: location error.";
+      widget.style.display = 'block';
+    },
     { timeout: 10000 }
   );
 }
