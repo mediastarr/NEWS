@@ -23,21 +23,33 @@ body{
 }
 
 .ar-title{
-  font-size:24px;
+  font-size:22px;
   margin-bottom:16px;
+  text-shadow:0 0 12px rgba(255,255,255,.5);
+  letter-spacing:1px;
 }
 
-/* Generic button style */
+/* Generic button: minimal HUD style — glowing outline and text instead
+   of a solid filled box, so it reads as light rather than a physical
+   card. On a waveguide display, black is literally invisible, so leaning
+   into "glowing outline" over "solid background" makes elements feel
+   like they belong to the display rather than an opaque phone-app card. */
 .open-btn{
   display:inline-block;
-  background:#444;
-  border:none;
-  padding:10px 16px;
-  border-radius:8px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.4);
+  padding:10px 18px;
+  border-radius:6px;
   color:#fff;
   text-decoration:none;
   cursor:pointer;
   margin-top:10px;
+  text-shadow:0 0 8px rgba(255,255,255,.5);
+  transition:background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.open-btn:hover{
+  background:rgba(255,255,255,.08);
 }
 
 .keyboard-row{
@@ -50,10 +62,10 @@ body{
 .key-btn{
   flex:1;
   padding:12px 0;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.2);
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.25);
   font-size:15px;
-  background:#222;
+  background:rgba(255,255,255,.03);
   color:#fff;
   text-align:center;
   cursor:pointer;
@@ -62,28 +74,32 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
+  text-shadow:0 0 6px rgba(255,255,255,.4);
+  transition:background .15s ease, box-shadow .15s ease;
 }
 
 .key-btn:active{
-  background:#333;
+  background:rgba(255,255,255,.1);
 }
 
 .focusable:focus{
   outline:none;
   border-color:#00d4ff;
-  box-shadow:0 0 16px rgba(0,212,255,.5);
+  box-shadow:0 0 18px rgba(0,212,255,.65);
+  background:rgba(0,212,255,.08);
 }
 
 /* Trending Bar */
 .trending-bar{
-  background:#111;
-  border:1px solid #333;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.25);
   padding:12px 16px;
-  border-radius:10px;
+  border-radius:8px;
   margin-bottom:20px;
   font-size:16px;
   color:#fff;
   cursor:pointer;
+  text-shadow:0 0 8px rgba(255,255,255,.4);
   transition:opacity .3s ease, transform .3s ease;
 }
 
@@ -94,16 +110,17 @@ body{
 
 /* Breaking News Alert */
 .breaking-alert{
-  background:#8b0000;
-  border:2px solid #ff4444;
+  background:rgba(139,0,0,.35);
+  border:1px solid #ff4444;
   padding:14px 18px;
-  border-radius:12px;
+  border-radius:10px;
   margin-bottom:20px;
   font-size:18px;
   color:#fff;
   cursor:pointer;
   position:relative;
   overflow:hidden;
+  text-shadow:0 0 10px rgba(255,80,80,.8);
   animation:pulse 1.4s infinite ease-in-out;
 }
 
@@ -138,23 +155,81 @@ body{
   100%{transform:translateX(0);}
 }
 
-/* Category Grid */
+/* Category "constellation" — an arc of tiles rather than a flat grid,
+   each with a diagonal corner-bracket frame (sci-fi HUD targeting-reticle
+   style) instead of a full boxy border. Focused tiles brighten and scale
+   up; everything else dims and softens slightly, via :has() — a real
+   sense of foreground/background depth rather than a flat list. */
 .ar-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:16px;
+  position:relative;
+  height:330px;
+  margin:0 auto 10px;
+  max-width:480px;
 }
 
 .ar-card{
+  position:absolute;
+  top:0;
+  left:50%;
+  width:88px;
+  margin-left:-44px;
   background:transparent !important;
-  border:1px solid rgba(255,255,255,.25);
-  padding:20px;
-  border-radius:14px;
-  font-size:18px;
+  border:none;
+  padding:14px 6px;
+  font-size:13px;
+  line-height:1.3;
   text-align:center;
   cursor:pointer;
   color:#fff;
-  transition:box-shadow .25s ease, border-color .25s ease;
+  text-shadow:0 0 10px rgba(255,255,255,.4);
+
+  --tx:0px; --ty:0px; --scale:1; --blur:0px; --op:1;
+  transform:translate(-50%, 0) translate(var(--tx), var(--ty)) scale(var(--scale));
+  filter:blur(var(--blur));
+  opacity:var(--op);
+  transition:transform .25s ease, filter .25s ease, opacity .25s ease;
+}
+
+.ar-card::before,
+.ar-card::after{
+  content:"";
+  position:absolute;
+  width:14px;
+  height:14px;
+  border:1.5px solid currentColor;
+  opacity:.6;
+  pointer-events:none;
+}
+.ar-card::before{ top:0; left:0; border-right:none; border-bottom:none; }
+.ar-card::after{ bottom:0; right:0; border-left:none; border-top:none; }
+
+/* Back row — World, Business, Science, Technology, Entertainment: further
+   away, smaller, dimmer, reinforcing depth even before anything's focused */
+.ar-grid .ar-card:nth-child(1){ --tx:-145.7px; --ty:82.4px;  --scale:.8; --op:.8; }
+.ar-grid .ar-card:nth-child(2){ --tx:-83.7px;  --ty:22.0px;  --scale:.8; --op:.8; }
+.ar-grid .ar-card:nth-child(3){ --tx:0px;      --ty:0px;     --scale:.8; --op:.8; }
+.ar-grid .ar-card:nth-child(4){ --tx:83.7px;   --ty:22.0px;  --scale:.8; --op:.8; }
+.ar-grid .ar-card:nth-child(5){ --tx:145.7px;  --ty:82.4px;  --scale:.8; --op:.8; }
+
+/* Front row — Sports, Health, Politics, Videos, Local: closer, full size */
+.ar-grid .ar-card:nth-child(6){ --tx:-199.2px; --ty:245px; }
+.ar-grid .ar-card:nth-child(7){ --tx:-115px;   --ty:160.8px; }
+.ar-grid .ar-card:nth-child(8){ --tx:0px;      --ty:130px; }
+.ar-grid .ar-card:nth-child(9){ --tx:115px;    --ty:160.8px; }
+.ar-grid .ar-card:nth-child(10){ --tx:199.2px; --ty:245px; }
+
+/* These come after the row-positioning rules above so they win the
+   specificity tiebreak (equal specificity, later source order wins) —
+   otherwise a focused back-row card would stay dim instead of brightening */
+.ar-grid .ar-card:focus{
+  --scale:1.18;
+  --op:1;
+  z-index:5;
+}
+
+.ar-grid:has(.ar-card:focus) .ar-card:not(:focus){
+  --blur:1px;
+  --op:.5;
 }
 
 /* PANEL */
@@ -171,7 +246,15 @@ body{
   pointer-events:auto !important;
 }
 
-.ar-panel.open{display:flex;}
+.ar-panel.open{
+  display:flex;
+  animation:panelIn .25s ease;
+}
+
+@keyframes panelIn{
+  0%{opacity:0; transform:scale(.97);}
+  100%{opacity:1; transform:scale(1);}
+}
 
 .ar-panel-header{
   display:flex;
@@ -183,12 +266,13 @@ body{
 }
 
 #panelClose{
-  background:#333;
-  border:none;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.3);
   padding:8px 14px;
-  border-radius:8px;
+  border-radius:6px;
   color:#fff;
   cursor:pointer;
+  text-shadow:0 0 6px rgba(255,255,255,.4);
 }
 
 /* SCROLL AREA */
@@ -220,14 +304,19 @@ body{
   padding:14px 0;
   border-bottom:1px solid rgba(255,255,255,.15);
   background:transparent !important;
-  transition:box-shadow .25s ease, background-color .25s ease;
+  transition:box-shadow .25s ease, opacity .25s ease, filter .25s ease;
   pointer-events:auto !important;
   z-index:10002;
 }
 
 .ar-article:hover,
 .ar-article:focus-within{
-  box-shadow:0 10px 20px rgba(0,0,0,.4);
+  box-shadow:0 0 20px rgba(255,255,255,.15);
+}
+
+.ar-scroll-inner:has(.ar-article:focus-within) .ar-article:not(:focus-within){
+  opacity:.55;
+  filter:blur(.5px);
 }
 
 .open-btn:focus,
