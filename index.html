@@ -461,6 +461,16 @@ body::-webkit-scrollbar{
 
     <div id="weatherWidget" style="display:none;background:#111;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;margin-top:10px;font-size:15px;">
       <span id="weatherText">Loading weather…</span>
+      <div id="weatherCityRow" style="display:none;gap:8px;margin-top:10px;">
+        <input
+          id="weatherCityInput"
+          type="text"
+          placeholder="Enter city or ZIP…"
+          readonly
+          style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:#0a0a0a;color:#fff;font-size:14px;"
+        >
+        <button class="open-btn" id="weatherCitySubmit" style="margin-top:0;">Set</button>
+      </div>
     </div>
 
     <div id="keyboard" style="display:none;margin-top:10px;padding:10px;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.15);">
@@ -699,60 +709,152 @@ function showLocalError(message){
    browser without going through the Worker at all. Fails silently (widget
    just stays hidden) if location access is denied, rather than nagging. */
 const WEATHER_CODES = {
-  0: '☀️ Clear sky', 1: '🌤️ Mostly clear', 2: '⛅ Partly cloudy', 3: '☁️ Overcast',
-  45: '🌫️ Fog', 48: '🌫️ Fog',
-  51: '🌦️ Light drizzle', 53: '🌦️ Drizzle', 55: '🌦️ Dense drizzle',
-  61: '🌧️ Light rain', 63: '🌧️ Rain', 65: '🌧️ Heavy rain',
-  71: '🌨️ Light snow', 73: '🌨️ Snow', 75: '🌨️ Heavy snow',
-  80: '🌦️ Rain showers', 81: '🌦️ Rain showers', 82: '⛈️ Violent rain showers',
-  95: '⛈️ Thunderstorm', 96: '⛈️ Thunderstorm', 99: '⛈️ Severe thunderstorm'
+  0: { day: '☀️', night: '🌙', label: 'Clear sky' },
+  1: { day: '🌤️', night: '🌙', label: 'Mostly clear' },
+  2: { day: '⛅', night: '☁️', label: 'Partly cloudy' },
+  3: { day: '☁️', night: '☁️', label: 'Overcast' },
+  45: { day: '🌫️', night: '🌫️', label: 'Fog' },
+  48: { day: '🌫️', night: '🌫️', label: 'Fog' },
+  51: { day: '🌦️', night: '🌦️', label: 'Light drizzle' },
+  53: { day: '🌦️', night: '🌦️', label: 'Drizzle' },
+  55: { day: '🌦️', night: '🌦️', label: 'Dense drizzle' },
+  61: { day: '🌧️', night: '🌧️', label: 'Light rain' },
+  63: { day: '🌧️', night: '🌧️', label: 'Rain' },
+  65: { day: '🌧️', night: '🌧️', label: 'Heavy rain' },
+  71: { day: '🌨️', night: '🌨️', label: 'Light snow' },
+  73: { day: '🌨️', night: '🌨️', label: 'Snow' },
+  75: { day: '🌨️', night: '🌨️', label: 'Heavy snow' },
+  80: { day: '🌦️', night: '🌦️', label: 'Rain showers' },
+  81: { day: '🌦️', night: '🌦️', label: 'Rain showers' },
+  82: { day: '⛈️', night: '⛈️', label: 'Violent rain showers' },
+  95: { day: '⛈️', night: '⛈️', label: 'Thunderstorm' },
+  96: { day: '⛈️', night: '⛈️', label: 'Thunderstorm' },
+  99: { day: '⛈️', night: '⛈️', label: 'Severe thunderstorm' }
 };
 
+const WEATHER_CITY_STORAGE_KEY = 'arNewsHub_weatherCity';
+
 function loadWeather(){
-  const widget = document.getElementById('weatherWidget');
-  const text = document.getElementById('weatherText');
+  // Returning users: skip geolocation entirely if we already have a saved
+  // city, avoiding the permission dance altogether.
+  const saved = localStorage.getItem(WEATHER_CITY_STORAGE_KEY);
+  if (saved){
+    try {
+      const { name, lat, lon } = JSON.parse(saved);
+      fetchWeatherForCoords(lat, lon, name);
+      return;
+    } catch (e) { /* corrupted storage — fall through to geolocation */ }
+  }
 
   if (!navigator.geolocation){
-    text.textContent = "Weather unavailable: location not supported by this browser.";
-    widget.style.display = 'block';
+    showWeatherFallback("Location not supported by this browser. Enter your city instead.");
     return;
   }
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const { latitude, longitude } = pos.coords;
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&temperature_unit=fahrenheit`)
-        .then(r => r.json())
-        .then(data => {
-          const cw = data.current_weather;
-          if (!cw){
-            text.textContent = "Weather unavailable: no data for your location.";
-            widget.style.display = 'block';
-            return;
-          }
-
-          const desc = WEATHER_CODES[cw.weathercode] || '🌡️ Weather';
-          const temp = Math.round(cw.temperature);
-          text.textContent = `${desc} · ${temp}°F`;
-          widget.style.display = 'block';
-        })
-        .catch((err) => {
-          text.textContent = `Weather unavailable: ${err.message || 'request failed'}.`;
-          widget.style.display = 'block';
-        });
+      fetchWeatherForCoords(pos.coords.latitude, pos.coords.longitude);
     },
     (err) => {
       const reasons = {
-        1: "Weather unavailable: location permission denied.",
-        2: "Weather unavailable: position couldn't be determined.",
-        3: "Weather unavailable: location request timed out."
+        1: "Location permission denied. Enter your city instead.",
+        2: "Position couldn't be determined. Enter your city instead.",
+        3: "Location request timed out. Enter your city instead."
       };
-      text.textContent = reasons[err.code] || "Weather unavailable: location error.";
-      widget.style.display = 'block';
+      showWeatherFallback(reasons[err.code] || "Location error. Enter your city instead.");
     },
     { timeout: 10000 }
   );
 }
+
+function fetchWeatherForCoords(lat, lon, label){
+  const widget = document.getElementById('weatherWidget');
+  const text = document.getElementById('weatherText');
+
+  const fields = 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m';
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${fields}&temperature_unit=fahrenheit&wind_speed_unit=mph`)
+    .then(r => r.json())
+    .then(data => {
+      const cw = data.current;
+      if (!cw){
+        showWeatherFallback("No weather data for this location. Try a different city.");
+        return;
+      }
+
+      const code = WEATHER_CODES[cw.weather_code] || { day: '🌡️', night: '🌡️', label: 'Weather' };
+      const icon = cw.is_day ? code.day : code.night;
+      const temp = Math.round(cw.temperature_2m);
+      const feelsLike = Math.round(cw.apparent_temperature);
+      const humidity = Math.round(cw.relative_humidity_2m);
+      const wind = Math.round(cw.wind_speed_10m);
+
+      let line = `${icon} ${temp}°F`;
+      if (Math.abs(feelsLike - temp) >= 2) line += ` (feels ${feelsLike}°)`;
+      line += ` · ${humidity}% humidity · ${wind}mph wind`;
+      if (cw.precipitation > 0) line += ` · ${cw.precipitation}in precip`;
+      if (label) line += ` — ${label}`;
+
+      text.textContent = line;
+      widget.style.display = 'block';
+      document.getElementById('weatherCityRow').style.display = 'none';
+    })
+    .catch((err) => {
+      showWeatherFallback(`Weather request failed (${err.message || 'network error'}). Try a different city.`);
+    });
+}
+
+function showWeatherFallback(message){
+  const widget = document.getElementById('weatherWidget');
+  const text = document.getElementById('weatherText');
+  text.textContent = message;
+  widget.style.display = 'block';
+  document.getElementById('weatherCityRow').style.display = 'flex';
+}
+
+/* Manually-entered city/ZIP: geocode via Open-Meteo's free geocoding API
+   (no key needed, same provider as the weather data itself), then save
+   the result so future visits skip straight to it via loadWeather() above. */
+function submitWeatherCity(){
+  const cityInput = document.getElementById('weatherCityInput');
+  const city = cityInput.value.trim();
+  if (!city) return;
+
+  const text = document.getElementById('weatherText');
+  text.textContent = `Looking up "${city}"…`;
+
+  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)
+    .then(r => r.json())
+    .then(data => {
+      const result = data.results && data.results[0];
+      if (!result){
+        text.textContent = `Couldn't find "${city}". Try a different city or ZIP.`;
+        return;
+      }
+      const label = [result.name, result.admin1, result.country].filter(Boolean).join(', ');
+      localStorage.setItem(WEATHER_CITY_STORAGE_KEY, JSON.stringify({
+        name: label,
+        lat: result.latitude,
+        lon: result.longitude
+      }));
+      fetchWeatherForCoords(result.latitude, result.longitude, label);
+    })
+    .catch(() => {
+      text.textContent = `Couldn't look up "${city}". Try again.`;
+    });
+}
+
+document.getElementById('weatherCitySubmit').onclick = submitWeatherCity;
+document.getElementById('weatherCityInput').addEventListener('click', () => {
+  openKeyboardFor(document.getElementById('weatherCityInput'), submitWeatherCity);
+});
+document.getElementById('weatherCityInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    openKeyboardFor(document.getElementById('weatherCityInput'), submitWeatherCity);
+  }
+});
+
+
 
 /* Best-effort guess at whether an article likely has an embedded video,
    based on its title/description text. Not exact (Currents doesn't expose
@@ -1465,10 +1567,23 @@ const keyboardEl = document.getElementById('keyboard');
 const searchInputEl = document.getElementById('searchInput');
 let showingNumRow = false;
 
-function openKeyboard(){
+// Generalized so more than one input can reuse the same on-screen keyboard
+// (there's no native keyboard on this platform at all, so every text entry
+// point needs this) — activeKeyboardInput tracks which field is being
+// typed into, and activeKeyboardSubmit is what ENTER/GO should do for it.
+let activeKeyboardInput = searchInputEl;
+let activeKeyboardSubmit = () => openSearch(searchInputEl.value);
+
+function openKeyboardFor(inputEl, onSubmit){
+  activeKeyboardInput = inputEl;
+  activeKeyboardSubmit = onSubmit;
   keyboardEl.style.display = 'block';
   const firstKey = keyboardEl.querySelector('.focusable');
   if (firstKey) firstKey.focus();
+}
+
+function openKeyboard(){
+  openKeyboardFor(searchInputEl, () => openSearch(searchInputEl.value));
 }
 // Only a genuine tap or a deliberate Enter-while-focused opens the
 // keyboard — binding this to the 'focus' event was too broad, since
@@ -1484,11 +1599,11 @@ searchInputEl.addEventListener('keydown', (e) => {
 
 function handleKeyPress(key){
   if (key === 'DELETE'){
-    searchInputEl.value = searchInputEl.value.slice(0, -1);
+    activeKeyboardInput.value = activeKeyboardInput.value.slice(0, -1);
   } else if (key === 'SPACE'){
-    searchInputEl.value += ' ';
+    activeKeyboardInput.value += ' ';
   } else if (key === 'ENTER'){
-    openSearch(searchInputEl.value);
+    activeKeyboardSubmit();
     keyboardEl.style.display = 'none';
   } else if (key === 'BACK'){
     keyboardEl.style.display = 'none';
@@ -1501,7 +1616,7 @@ function handleKeyPress(key){
     document.getElementById('kbRowNums1').style.display = showingNumRow ? 'flex' : 'none';
     document.getElementById('numToggleBtn').textContent = showingNumRow ? 'ABC' : '123';
   } else {
-    searchInputEl.value += key;
+    activeKeyboardInput.value += key;
   }
 }
 
