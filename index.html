@@ -461,6 +461,9 @@ body::-webkit-scrollbar{
 
     <div id="weatherWidget" style="display:none;background:#111;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;margin-top:10px;font-size:15px;">
       <span id="weatherText">Loading weather…</span>
+      <div id="weatherRetryRow" style="display:none;margin-top:10px;">
+        <button class="open-btn" id="weatherRetryBtn" style="margin-top:0;">🔄 Try Location Again</button>
+      </div>
       <div id="weatherCityRow" style="display:none;gap:8px;margin-top:10px;">
         <input
           id="weatherCityInput"
@@ -796,6 +799,7 @@ function fetchWeatherForCoords(lat, lon, label){
 
       text.textContent = line;
       widget.style.display = 'block';
+      document.getElementById('weatherRetryRow').style.display = 'none';
       document.getElementById('weatherCityRow').style.display = 'none';
     })
     .catch((err) => {
@@ -808,8 +812,16 @@ function showWeatherFallback(message){
   const text = document.getElementById('weatherText');
   text.textContent = message;
   widget.style.display = 'block';
+  document.getElementById('weatherRetryRow').style.display = 'block';
   document.getElementById('weatherCityRow').style.display = 'flex';
 }
+
+document.getElementById('weatherRetryBtn').addEventListener('click', () => {
+  document.getElementById('weatherText').textContent = 'Retrying location…';
+  document.getElementById('weatherRetryRow').style.display = 'none';
+  document.getElementById('weatherCityRow').style.display = 'none';
+  loadWeather();
+});
 
 /* Manually-entered city/ZIP: geocode via Open-Meteo's free geocoding API
    (no key needed, same provider as the weather data itself), then save
@@ -1714,6 +1726,7 @@ function getHomeFocusable(){
     document.getElementById('breakingBar'),
     document.getElementById('searchInput'),
     document.getElementById('searchSubmit'),
+    document.getElementById('weatherRetryBtn'),
     document.getElementById('weatherCityInput'),
     document.getElementById('weatherCitySubmit'),
     document.getElementById('categoryCarousel')
