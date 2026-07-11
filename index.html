@@ -1806,11 +1806,39 @@ const CAROUSEL_CATEGORIES = [
 let carouselIndex = 0;
 const carouselEl = document.getElementById('categoryCarousel');
 
-function renderCarousel(){
-  carouselEl.innerHTML = '';
+const carouselCardEls = [];
+
+function buildCarouselCards(){
   const n = CAROUSEL_CATEGORIES.length;
 
   CAROUSEL_CATEGORIES.forEach((cat, i) => {
+    const card = document.createElement('div');
+    card.className = 'carousel-card cc-far';
+    card.style.color = cat.color;
+    card.style.background = `${cat.color}22`;
+    card.style.border = `1px solid ${cat.color}88`;
+    card.innerHTML = `
+      <div class="cc-icon">${cat.icon}</div>
+      <div class="cc-label" style="color:#fff;">${cat.label}</div>
+      <div class="cc-sub">${cat.sub}</div>
+    `;
+    card.onclick = () => {
+      if (i === carouselIndex){
+        cat.action();
+      } else {
+        carouselIndex = i;
+        renderCarousel();
+      }
+    };
+    carouselEl.appendChild(card);
+    carouselCardEls.push(card);
+  });
+}
+
+function renderCarousel(){
+  const n = CAROUSEL_CATEGORIES.length;
+
+  carouselCardEls.forEach((card, i) => {
     let offset = i - carouselIndex;
     if (offset > n / 2) offset -= n;
     if (offset < -n / 2) offset += n;
@@ -1820,25 +1848,11 @@ function renderCarousel(){
     else if (offset === -1) posClass = 'cc-prev';
     else if (offset === 1) posClass = 'cc-next';
 
-    const card = document.createElement('div');
     card.className = `carousel-card ${posClass}`;
-    card.style.color = cat.color;
-    card.style.background = `${cat.color}22`;
-    card.style.border = `1px solid ${cat.color}88`;
-    card.innerHTML = `
-      <div class="cc-icon">${cat.icon}</div>
-      <div class="cc-label" style="color:#fff;">${cat.label}</div>
-      <div class="cc-sub">${cat.sub}</div>
-    `;
-    if (offset === 0){
-      card.onclick = () => cat.action();
-    } else {
-      const targetIndex = i;
-      card.onclick = () => { carouselIndex = targetIndex; renderCarousel(); };
-    }
-    carouselEl.appendChild(card);
   });
 }
+
+buildCarouselCards();
 
 carouselEl.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight'){
