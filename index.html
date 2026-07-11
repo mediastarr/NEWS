@@ -1714,6 +1714,8 @@ function getHomeFocusable(){
     document.getElementById('breakingBar'),
     document.getElementById('searchInput'),
     document.getElementById('searchSubmit'),
+    document.getElementById('weatherCityInput'),
+    document.getElementById('weatherCitySubmit'),
     document.getElementById('categoryCarousel')
   ];
   return candidates.filter(el => el && el.offsetParent !== null);
