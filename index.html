@@ -175,6 +175,15 @@ body::-webkit-scrollbar{
   100%{transform:translateX(0);}
 }
 
+.breaking-alert.new-pulse{
+  animation:newBreakingFlash 1.6s ease-out;
+}
+
+@keyframes newBreakingFlash{
+  0%{box-shadow:0 0 0 0 rgba(255,80,80,.9); background:rgba(255,80,80,.5);}
+  100%{box-shadow:0 0 30px 12px rgba(255,80,80,0); background:rgba(139,0,0,.35);}
+}
+
 /* Category "constellation" — an arc of tiles rather than a flat grid,
    each with a diagonal corner-bracket frame (sci-fi HUD targeting-reticle
    style) instead of a full boxy border. Focused tiles brighten and scale
@@ -551,6 +560,8 @@ function dedupeArticles(list){
 }
 
 let activeCategory = null;
+let currentCacheKey = null; // for offline fallback — which cached list to fall back to on fetch failure
+let lastBreakingHeadline = ''; // tracks changes for the "new breaking news" pulse
 let trendingIndex = 0;
 let trendingList = [];
 let currentIndex = 0;
@@ -594,6 +605,7 @@ function isCategory(cat){
 
 function openPanel(category){
   activeCategory = category;
+  currentCacheKey = category;
 
   document.body.className = "";
   document.body.classList.add("theme-" + category);
@@ -620,6 +632,7 @@ function openSearch(query){
   if (!query) return;
 
   activeCategory = null;
+  currentCacheKey = null;
   document.body.className = "";
 
   panel.classList.add('open');
@@ -639,6 +652,7 @@ function openSearch(query){
    than the API can deliver. */
 function openVideos(){
   activeCategory = null;
+  currentCacheKey = 'videos';
   document.body.className = "";
 
   panel.classList.add('open');
@@ -658,6 +672,7 @@ function openVideos(){
    as before; this just adds one more way to slice the news. */
 function openLocal(){
   activeCategory = null;
+  currentCacheKey = 'local';
   document.body.className = "";
 
   panel.classList.add('open');
@@ -901,13 +916,24 @@ function fetchCategoryPage(page, append){
       } else {
         currentList = news;
         currentIndex = 0;
+        if (currentCacheKey) cacheArticles(currentCacheKey, currentList);
       }
 
       listRenderer = renderArticleList;
       renderArticleList();
     })
     .catch(err => {
-      if (!append){
+      if (append) return;
+
+      const cached = currentCacheKey ? getCachedArticles(currentCacheKey) : null;
+      if (cached){
+        currentList = cached.articles;
+        currentIndex = 0;
+        categoryLastCount = 0; // don't offer Load More on cached/offline data
+        listRenderer = renderArticleList;
+        renderArticleList();
+        showCachedBanner(cached.timestamp);
+      } else {
         scrollInner.innerHTML = `<p>Error loading news: ${err.message || err}</p>`;
       }
     });
@@ -915,6 +941,32 @@ function fetchCategoryPage(page, append){
 
 function loadMoreCategory(){
   fetchCategoryPage(categoryPage + 1, true);
+}
+
+/* Offline fallback: cache the last successful result per view so a
+   dropped connection shows "last known" headlines instead of a dead end. */
+function cacheArticles(key, articles){
+  try {
+    localStorage.setItem('arNewsHub_cache_' + key, JSON.stringify({ articles, timestamp: Date.now() }));
+  } catch (e) { /* storage full/unavailable — caching just silently skipped */ }
+}
+
+function getCachedArticles(key){
+  try {
+    const raw = localStorage.getItem('arNewsHub_cache_' + key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function showCachedBanner(timestamp){
+  const minsAgo = Math.max(1, Math.round((Date.now() - timestamp) / 60000));
+  const banner = document.createElement('div');
+  banner.style.cssText = 'background:rgba(255,180,0,.15);border:1px solid rgba(255,180,0,.5);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:#ffcc66;';
+  banner.textContent = `📡 Offline — showing cached results from ${minsAgo} min ago`;
+  scrollInner.insertBefore(banner, scrollInner.firstChild);
 }
 
 function renderArticleList(){
@@ -1385,6 +1437,7 @@ function fetchBreakingPage(page, append){
       }
 
       breakingList = news;
+      cacheArticles('breaking', breakingList);
       const bar = document.getElementById("breakingBar");
 
       if (breakingList.length > 0){
@@ -1398,14 +1451,35 @@ function fetchBreakingPage(page, append){
         if (lower.includes("urgent") || lower.includes("alert")){
           bar.classList.add("critical");
         }
+
+        // Pulse only when the headline actually changed to something new —
+        // not on every 3-minute re-fetch that happens to return the same
+        // story, and not on the very first load (nothing to compare against).
+        if (lastBreakingHeadline && headline !== lastBreakingHeadline){
+          bar.classList.remove('new-pulse');
+          void bar.offsetWidth; // restart the animation if it's already mid-pulse
+          bar.classList.add('new-pulse');
+          setTimeout(() => bar.classList.remove('new-pulse'), 1600);
+        }
+        lastBreakingHeadline = headline;
       } else {
         bar.style.display = "none";
       }
     })
     .catch(err => {
-      if (!append){
-        console.error("Breaking news error:", err.message || err);
-        const bar = document.getElementById("breakingBar");
+      if (append) return;
+
+      console.error("Breaking news error:", err.message || err);
+      const cached = getCachedArticles('breaking');
+      const bar = document.getElementById("breakingBar");
+
+      if (cached && cached.articles.length){
+        breakingList = cached.articles;
+        const headline = breakingList[0].title || '';
+        bar.style.display = "block";
+        bar.textContent = "BREAKING NEWS (cached): " + headline;
+        bar.classList.remove("critical", "new-pulse");
+      } else {
         bar.style.display = "none";
       }
     });
