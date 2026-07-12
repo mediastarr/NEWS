@@ -518,7 +518,11 @@ body::-webkit-scrollbar{
 <div class="ar-panel" id="newsPanel">
   <div class="ar-panel-header">
     <span id="panelTitle"></span>
-    <button id="panelClose" onclick="handleBack()">✕</button>
+    <div style="display:flex;gap:8px;">
+      <button id="jumpTrendingBtn" class="open-btn" style="margin-top:0;padding:8px 12px;" onclick="openTrending()" title="Jump to Trending">📈</button>
+      <button id="jumpBreakingBtn" class="open-btn" style="margin-top:0;padding:8px 12px;" onclick="openBreaking()" title="Jump to Breaking">🚨</button>
+      <button id="panelClose" onclick="handleBack()">✕</button>
+    </div>
   </div>
 
   <div class="ar-scroll" id="scrollArea">
@@ -998,6 +1002,7 @@ function renderArticleList(){
 
       ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
+      <p style="color:#888;font-size:13px;margin:0 0 6px;">${getArticleSource(a)}${timeSincePublished(a) ? ' · ' + timeSincePublished(a) : ''}</p>
       <p>${a.description || ''}</p>
 
       <button class="open-btn" onclick="openArticleIndex(${i})">
@@ -1034,6 +1039,38 @@ function getArticleSource(article){
   }
 }
 
+/* "2h ago" style relative time from Currents API's published field.
+   Their format ("2026-07-05 20:00:00 +0000") isn't directly ISO-parseable
+   by JS in all cases — needs the timezone offset colon-separated first. */
+function timeSincePublished(article){
+  if (!article.published) return '';
+
+  const iso = article.published.trim()
+    .replace(' ', 'T')
+    .replace(/\s*([+-]\d{2})(\d{2})$/, '$1:$2');
+  const then = new Date(iso);
+  if (isNaN(then.getTime())) return '';
+
+  const diffMs = Date.now() - then.getTime();
+  if (diffMs < 0) return '';
+
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
 function openArticleIndex(i){
   currentIndex = i;
   openArticleFull(currentList[i]);
@@ -1049,6 +1086,7 @@ function openArticleFull(article){
 
   const articleUrl = getArticleUrl(article);
   const source = getArticleSource(article);
+  const timeAgo = timeSincePublished(article);
 
   scrollInner.innerHTML = `
     ${article.image ? 
@@ -1057,7 +1095,7 @@ function openArticleFull(article){
       : ''
     }
 
-    ${source ? `<p style="color:#8ecbff;font-size:14px;margin:0 0 8px;">${source}</p>` : ''}
+    ${source || timeAgo ? `<p style="color:#8ecbff;font-size:14px;margin:0 0 8px;">${source}${source && timeAgo ? ' · ' : ''}${timeAgo}</p>` : ''}
     <h2>${article.title || ''}</h2>
     <p>${article.description || ''}</p>
 
@@ -1385,6 +1423,7 @@ function renderTrendingList(){
     div.innerHTML = `
       ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
+      <p style="color:#888;font-size:13px;margin:0 0 6px;">${getArticleSource(a)}${timeSincePublished(a) ? ' · ' + timeSincePublished(a) : ''}</p>
       <p>${a.description || ''}</p>
       <button class="open-btn" onclick="openTrendingIndex(${i})">
         Open Article
@@ -1511,6 +1550,7 @@ function renderBreakingList(){
     div.innerHTML = `
       ${videoBadgeHtml(a)}
       <h3>${a.title || ''}</h3>
+      <p style="color:#888;font-size:13px;margin:0 0 6px;">${getArticleSource(a)}${timeSincePublished(a) ? ' · ' + timeSincePublished(a) : ''}</p>
       <p>${a.description || ''}</p>
       <button class="open-btn" onclick="openBreakingIndex(${i})">
         Open Article
