@@ -1937,6 +1937,7 @@ function buildCarouselCards(){
       <div class="cc-sub">${cat.sub}</div>
     `;
     card.onclick = () => {
+      playPopSound();
       if (i === carouselIndex){
         cat.action();
       } else {
@@ -1968,22 +1969,65 @@ function renderCarousel(){
 
 buildCarouselCards();
 
+/* Synthesized "pop" feedback sound — a quick descending tone rather than
+   an external audio file, so there's nothing to host/fetch and no
+   question of reusing anyone else's sound clip. AudioContext needs a
+   user gesture to run, which every call site here already is (keydown/
+   click), so no autoplay-restriction issues. */
+let popAudioCtx = null;
+function playPopSound(){
+  try {
+    if (!popAudioCtx) popAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (popAudioCtx.state === 'suspended') popAudioCtx.resume();
+
+    const osc = popAudioCtx.createOscillator();
+    const gain = popAudioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(700, popAudioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, popAudioCtx.currentTime + 0.08);
+
+    gain.gain.setValueAtTime(0.25, popAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, popAudioCtx.currentTime + 0.09);
+
+    osc.connect(gain);
+    gain.connect(popAudioCtx.destination);
+
+    osc.start();
+    osc.stop(popAudioCtx.currentTime + 0.1);
+  } catch (e) { /* audio unavailable — fail silently, never blocks navigation */ }
+}
+
 carouselEl.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight'){
     e.preventDefault();
+    playPopSound();
     carouselIndex = (carouselIndex + 1) % CAROUSEL_CATEGORIES.length;
     renderCarousel();
   } else if (e.key === 'ArrowLeft'){
     e.preventDefault();
+    playPopSound();
     carouselIndex = (carouselIndex - 1 + CAROUSEL_CATEGORIES.length) % CAROUSEL_CATEGORIES.length;
     renderCarousel();
   } else if (e.key === 'Enter'){
     e.preventDefault();
+    playPopSound();
     CAROUSEL_CATEGORIES[carouselIndex].action();
   }
 });
 
 renderCarousel();
+
+/* General tap feedback app-wide — one delegated listener catches taps on
+   any button-like element (buttons, category tiles, keyboard keys) rather
+   than wiring playPopSound() into every individual click handler. Native
+   Enter-key activation of a focused <button> fires a real 'click' event
+   too, so this covers keyboard-driven selection as well, not just taps. */
+document.addEventListener('click', (e) => {
+  if (e.target.closest('button, .carousel-card, .key-btn')){
+    playPopSound();
+  }
+});
 
 document.addEventListener('keydown', (e) => {
   if (panel.classList.contains('open')) return;
