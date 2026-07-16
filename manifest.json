@@ -1,0 +1,20 @@
+{
+  "name": "AR News Hub",
+  "short_name": "AR News",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00d4ff",
+  "icons": [
+    {
+      "src": "ar-news-icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "ar-news-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
