@@ -1595,6 +1595,55 @@ function getFocusable(){
   return Array.from(panel.querySelectorAll('button, a.open-btn')).filter(el => el.offsetParent !== null);
 }
 
+/* Spatial navigation within the panel: Left/Right only considers elements
+   roughly in the same row as the current one (so the header's button row —
+   jump-to-Trending, jump-to-Breaking, X — cycles among itself rather than
+   also reaching down into the article list), while Up/Down considers
+   elements in a different row (so it naturally drops from the header into
+   whatever's below, one row of content at a time). */
+function panelFocusMove(dx, dy){
+  const items = getFocusable();
+  if (!items.length) return;
+
+  let idx = items.indexOf(document.activeElement);
+  if (idx === -1){
+    items[0].focus({ preventScroll: true });
+    revealFocused(items[0]);
+    return;
+  }
+
+  const cur = items[idx].getBoundingClientRect();
+  const curCenterX = (cur.left + cur.right) / 2;
+  const curCenterY = (cur.top + cur.bottom) / 2;
+
+  let best = null;
+  let bestDist = Infinity;
+
+  items.forEach(el => {
+    if (el === items[idx]) return;
+    const r = el.getBoundingClientRect();
+    const centerX = (r.left + r.right) / 2;
+    const centerY = (r.top + r.bottom) / 2;
+
+    if (dx !== 0){
+      if (Math.abs(centerY - curCenterY) > 10) return; // different row — not a Left/Right candidate
+      if (dx > 0 && centerX <= curCenterX + 5) return;
+      if (dx < 0 && centerX >= curCenterX - 5) return;
+    } else if (dy !== 0){
+      if (dy > 0 && centerY <= curCenterY + 5) return;
+      if (dy < 0 && centerY >= curCenterY - 5) return;
+    }
+
+    const dist = Math.hypot(centerX - curCenterX, centerY - curCenterY);
+    if (dist < bestDist){ bestDist = dist; best = el; }
+  });
+
+  if (best){
+    best.focus({ preventScroll: true });
+    revealFocused(best);
+  }
+}
+
 function focusStep(direction){
   const focusables = getFocusable();
   if (!focusables.length) return;
@@ -1637,26 +1686,32 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown'){
     e.preventDefault();
     cancelMomentum();
-    focusStep(1);
+    if (currentView === 'reader'){
+      focusStep(1);
+    } else {
+      panelFocusMove(0, 1);
+    }
   } else if (e.key === 'ArrowUp'){
     e.preventDefault();
     cancelMomentum();
-    focusStep(-1);
+    if (currentView === 'reader'){
+      focusStep(-1);
+    } else {
+      panelFocusMove(0, -1);
+    }
   } else if (e.key === 'ArrowRight'){
     e.preventDefault();
     if (currentView === 'reader'){
       focusStep(1);
-    } else if (currentList.length && currentIndex < currentList.length - 1){
-      currentIndex++;
-      openArticleFull(currentList[currentIndex]);
+    } else {
+      panelFocusMove(1, 0);
     }
   } else if (e.key === 'ArrowLeft'){
     e.preventDefault();
     if (currentView === 'reader'){
       focusStep(-1);
-    } else if (currentList.length && currentIndex > 0){
-      currentIndex--;
-      openArticleFull(currentList[currentIndex]);
+    } else {
+      panelFocusMove(-1, 0);
     }
   } else if (e.key === 'Escape'){
     handleBack();
